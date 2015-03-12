@@ -1,5 +1,19 @@
+#pragma once
+
 #include <FreeImage.h>
 #include <iostream>
+#include <cstdint>
+
+struct BW {
+    BW() {
+    }
+    enum Color : unsigned char {
+        Black,
+        White
+    };
+    Color color;
+};
+
 template<typename T>
 struct RGB {
     T r, g, b;
@@ -10,13 +24,18 @@ struct RGB {
         this->g = g;
         this->b = b;
     }
+    RGB(const BW& bw) {
+
+    }
     bool operator==(const RGB<T>& rhs) const {
         return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
     }
+    const RGB<T>& operator=(const BW& bw)  {
+        this->r = 0;
+        return *this;
+    }
 };
-//bool operator==(const RGB<unsigned char>& lhs, const RGB<unsigned char>& rhs) {
-//    return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b;
-//}
+
 template<typename T>
 class Image {
     unsigned int width_, height_;
@@ -39,6 +58,33 @@ public:
     }
     T GetPixel(unsigned int x, unsigned int y) {
         return data_[y * width() + x];
+    }
+    template<typename T1>
+    Image(Image<T1>& src) {
+        if(typeid(T) == typeid(BW) && typeid(T1) == typeid(RGB<unsigned char>)) {
+            set_width(src.width());
+            set_height(src.height());
+            data_ = new T[width() * height()];
+            for(unsigned int y = 0; y < this->height(); y++) {
+                for(unsigned int x = 0; x < this->width(); x++) {
+                    RGB<unsigned char> srcColor = src.GetPixel(x, y);
+                    BW bwColor;
+                    if(srcColor.r + srcColor.g + srcColor.b <= 190 * 3) {
+                        bwColor.color = BW::Color::Black;
+                    } else {
+                        bwColor.color = BW::Color::White;
+                    }
+                    SetPixel(x, y, bwColor);
+                }
+            }
+        } else {
+            throw;
+        }
+    }
+    Image(unsigned int width, unsigned int height) {
+        set_width(width);
+        set_height(height);
+        data_ = new T[width * height];
     }
     Image(const char* filename) {
         FIBITMAP *dib = FreeImage_Load(FIF_PNG, filename, PNG_DEFAULT);
@@ -82,15 +128,27 @@ public:
                     FreeImage_SetPixelColor(dib, x, y, &color);
                 }
             }
-            FreeImage_Save(FIF_PNG, dib, filename);
+        } else if(typeid(T) == typeid(BW)) {
+            for(unsigned int y = 0; y < this->height(); y++) {
+                for(unsigned int x = 0; x < this->width(); x++) {
+                    RGBQUAD color;
+                    BW colorXY = GetPixel(x, y);
+                    color.rgbRed = colorXY.color * 255;
+                    color.rgbGreen = colorXY.color * 255;
+                    color.rgbBlue = colorXY.color * 255;
+                    FreeImage_SetPixelColor(dib, x, y, &color);
+                }
+            }
         } else {
             throw;
         }
+        FreeImage_Save(FIF_PNG, dib, filename);
         FreeImage_Unload(dib);
     }
     ~Image() {
         if(data_ != nullptr) {
             delete []data_;
+            data_ = nullptr;
         }
     }
 };
