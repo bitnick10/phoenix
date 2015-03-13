@@ -1,17 +1,34 @@
 #pragma once
 
 #include <FreeImage.h>
-#include <iostream>
 #include <cstdint>
+#include <iostream>
+#include <string>
+
+#define NAMESPACE_IMAGEPP_BEGIN namespace imagepp {
+#define NAMESPACE_IMAGEPP_END }
+
+NAMESPACE_IMAGEPP_BEGIN
+
+template<typename T> struct RGB;
 
 struct BW {
     BW() {
+    }
+    template<typename T>
+    BW(const RGB<T>& rgb) {
+        throw;
     }
     enum Color : unsigned char {
         Black,
         White
     };
     Color color;
+    template<typename T>
+    const BW& operator=(const RGB<T>& rhs) {
+        throw;
+        return *this;
+    }
 };
 
 template<typename T>
@@ -32,7 +49,7 @@ struct RGB {
     bool operator==(const RGB<T>& rhs) const {
         return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
     }
-    const RGB<T>& operator=(const BW& bw)  {
+    const RGB<T>& operator=(const BW& bw) {
         this->r = bw.color * 255;
         this->g = bw.color * 255;
         this->b = bw.color * 255;
@@ -41,15 +58,23 @@ struct RGB {
 };
 
 template<typename T>
+struct Rect {
+    T x, y, width, height;
+};
+
+template<typename T>
 class Image {
     unsigned int width_, height_;
     T* data_;
 public:
-    unsigned int width() {
+    unsigned int width() const {
         return width_;
     }
-    unsigned int height() {
+    unsigned int height() const {
         return height_;
+    }
+    T* data() const {
+        return data_;
     }
     void set_width(unsigned int width) {
         width_ = width;
@@ -91,7 +116,14 @@ public:
         data_ = new T[width * height];
     }
     Image(const char* filename) {
-        FIBITMAP *dib = FreeImage_Load(FIF_PNG, filename, PNG_DEFAULT);
+        std::string fn = filename;
+        std::string ext = fn.substr(fn.find_last_of("."));
+        FIBITMAP *dib;
+        if(ext == ".png") {
+            dib = FreeImage_Load(FIF_PNG, filename, PNG_DEFAULT);
+        } else {
+            throw;
+        }
         if(dib) {
             if(typeid(T) == typeid(RGB<unsigned char>)) {
                 //std::cout << "Image<RGB<unsigned char>> construct" << std::endl;
@@ -119,8 +151,21 @@ public:
         }
         FreeImage_Unload(dib);
     }
+    Image<T> SubImage(unsigned int x1, unsigned int x2) {
+
+    }
     void Save(const char* filename) {
-        FIBITMAP* dib = FreeImage_Allocate(width(), height(), 24);
+        std::string fn = filename;
+        std::string ext = fn.substr(fn.find_last_of("."));
+        FIBITMAP *dib;
+        if(ext == ".png") {
+            dib = FreeImage_Allocate(width(), height(), 24);
+            if(!dib) {
+                throw;
+            }
+        } else {
+            throw;
+        }
         if(typeid(T) == typeid(RGB<unsigned char>)) {
             for(unsigned int y = 0; y < this->height(); y++) {
                 for(unsigned int x = 0; x < this->width(); x++) {
@@ -146,7 +191,10 @@ public:
         } else {
             throw;
         }
-        FreeImage_Save(FIF_PNG, dib, filename);
+        BOOL isSuccess = FreeImage_Save(FIF_PNG, dib, filename);
+        if(!isSuccess) {
+            throw;
+        }
         FreeImage_Unload(dib);
     }
     ~Image() {
@@ -156,3 +204,66 @@ public:
         }
     }
 };
+
+std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage) {
+    std::vector<unsigned int> overlapped(bwImage.width(), 0);
+    for(unsigned int x = 0; x < bwImage.width(); x++) {
+        for(unsigned int y = 0; y < bwImage.height(); y++) {
+            if(bwImage.GetPixel(x, y).color == BW::Color::Black)
+                overlapped[x] += 1;
+        }
+    }
+    return overlapped;
+}
+namespace cluster {
+unsigned int ClusterCount(std::vector<unsigned int> nums) {
+    unsigned int count = 0;
+    bool in_cluster = true;
+    for(unsigned int& n : nums) {
+        if(in_cluster) {
+            if(n > 0) {
+                continue;
+            } else {
+                in_cluster = false;
+            }
+        }
+        if(!in_cluster) {
+            if(n > 0) {
+                in_cluster = true;
+                count++;
+            } else {
+                continue;
+            }
+        }
+    }
+    return count;
+}
+
+std::vector<std::pair<unsigned int, unsigned int>> GetBorders(std::vector<unsigned int> nums) {
+    std::vector<std::pair<unsigned int, unsigned int>> borders;
+    bool in_cluster = false;
+    for(unsigned int i = 0; i < nums.size(); i++) {
+        unsigned int n = nums[i];
+        if(in_cluster) {
+            if(n > 0) {
+                continue;
+            } else {
+                in_cluster = false;
+                borders[borders.size() - 1].second = i - 1;
+            }
+        }
+        if(!in_cluster) {
+            if(n > 0) {
+                std::pair<unsigned int, unsigned int> pair;
+                pair.first = i ;
+                in_cluster = true;
+                borders.push_back(pair);
+            } else {
+                continue;
+            }
+        }
+    }
+    return borders;
+}
+}
+NAMESPACE_IMAGEPP_END
