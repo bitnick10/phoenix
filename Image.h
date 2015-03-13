@@ -25,13 +25,17 @@ struct RGB {
         this->b = b;
     }
     RGB(const BW& bw) {
-
+        this->r = bw.color * 255;
+        this->g = bw.color * 255;
+        this->b = bw.color * 255;
     }
     bool operator==(const RGB<T>& rhs) const {
         return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
     }
     const RGB<T>& operator=(const BW& bw)  {
-        this->r = 0;
+        this->r = bw.color * 255;
+        this->g = bw.color * 255;
+        this->b = bw.color * 255;
         return *this;
     }
 };
