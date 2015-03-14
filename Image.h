@@ -85,11 +85,17 @@ public:
     void SetPixel(unsigned int x, unsigned int y, T& color) {
         data_[y * width() + x] = color;
     }
-    T GetPixel(unsigned int x, unsigned int y) {
+    T GetPixel(unsigned int x, unsigned int y) const {
         return data_[y * width() + x];
     }
+    Image(const Image<T>& src) {
+        set_width(src.width());
+        set_height(src.height());
+        data_ = new T[width() * height()];
+        memcpy(data_, src.data(), sizeof(T)*width()*height());
+    }
     template<typename T1>
-    Image(Image<T1>& src) {
+    Image(const Image<T1>& src) {
         if(typeid(T) == typeid(BW) && typeid(T1) == typeid(RGB<unsigned char>)) {
             set_width(src.width());
             set_height(src.height());
@@ -151,10 +157,19 @@ public:
         }
         FreeImage_Unload(dib);
     }
-    Image<T> SubImage(unsigned int x1, unsigned int x2) {
-
+    Image<T> SubImage(const Rect<unsigned int>& rect) const {
+        assert(rect.width > 0 && rect.height > 0);
+        assert(rect.x < width() && rect.y < height());
+        assert(rect.x + rect.width <= width() && rect.y + rect.height <= height());
+        Image<T> subImage(rect.width, rect.height);
+        for(unsigned int y = 0; y < subImage.height(); y++) {
+            for(unsigned int x = 0; x < subImage.width(); x++) {
+                subImage.SetPixel(x, y, GetPixel(rect.x + x, rect.y + y));
+            }
+        }
+        return subImage;
     }
-    void Save(const char* filename) {
+    void Save(const char* filename) const {
         std::string fn = filename;
         std::string ext = fn.substr(fn.find_last_of("."));
         FIBITMAP *dib;
@@ -215,7 +230,19 @@ std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage) {
     }
     return overlapped;
 }
+std::vector<unsigned int> HorizontalOverlapping(Image<BW>& bwImage) {
+    std::vector<unsigned int> overlapped(bwImage.height(), 0);
+    for(unsigned int y = 0; y < bwImage.height(); y++) {
+        for(unsigned int x = 0; x < bwImage.width(); x++) {
+            if(bwImage.GetPixel(x, y).color == BW::Color::Black)
+                overlapped[y] += 1;
+        }
+    }
+    return overlapped;
+}
+
 namespace cluster {
+
 unsigned int ClusterCount(std::vector<unsigned int> nums) {
     unsigned int count = 0;
     bool in_cluster = true;
@@ -238,7 +265,6 @@ unsigned int ClusterCount(std::vector<unsigned int> nums) {
     }
     return count;
 }
-
 std::vector<std::pair<unsigned int, unsigned int>> GetBorders(std::vector<unsigned int> nums) {
     std::vector<std::pair<unsigned int, unsigned int>> borders;
     bool in_cluster = false;
@@ -265,5 +291,6 @@ std::vector<std::pair<unsigned int, unsigned int>> GetBorders(std::vector<unsign
     }
     return borders;
 }
+
 }
 NAMESPACE_IMAGEPP_END
