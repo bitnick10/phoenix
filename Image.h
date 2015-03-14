@@ -293,4 +293,10 @@ std::vector<std::pair<unsigned int, unsigned int>> GetBorders(std::vector<unsign
 }
 
 }
+
+namespace feature_extraction {
+
+void Line() {}
+
+}
 NAMESPACE_IMAGEPP_END
