@@ -292,10 +292,22 @@ public:
             data_[i] = v;
         }
     }
+    T GetMaxValue() const {
+        T max = 0;
+        for(int i = 0; i < width()*height(); i++) {
+            if(data()[i] > max) {
+                max = data()[i];
+            }
+        }
+        return max;
+    }
 };
 
-enum class ColorConvertAlgorithm {
-    RGB2BWCustomA
+enum class RGB2BWAlgorithm {
+    CustomA
+};
+enum class Matrix2GrayImageAlgorithm {
+    Normal
 };
 std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage) {
     std::vector<unsigned int> overlapped(bwImage.width(), 0);
@@ -317,8 +329,8 @@ std::vector<unsigned int> HorizontalOverlapping(Image<BW>& bwImage) {
     }
     return overlapped;
 }
-template<typename T> T GetConvertedImage(const Image<RGB<unsigned char>>& src, ColorConvertAlgorithm algorithem) {
-    if(typeid(T) == typeid(Image<BW>) && algorithem == ColorConvertAlgorithm::RGB2BWCustomA) {
+template<typename T> T GetConvertedImage(const Image<RGB<unsigned char>>& src, RGB2BWAlgorithm algorithm) {
+    if(typeid(T) == typeid(Image<BW>) && algorithm == RGB2BWAlgorithm::CustomA) {
         Image<BW> ret(src.width(), src.height());
         for(unsigned int y = 0; y < ret.height(); y++) {
             for(unsigned int x = 0; x < ret.width(); x++) {
@@ -333,6 +345,25 @@ template<typename T> T GetConvertedImage(const Image<RGB<unsigned char>>& src, C
             }
         }
         return ret;
+    } else {
+        throw;
+    }
+}
+template<typename T> T GetConvertedImage(const Matrix<unsigned int>& mat, Matrix2GrayImageAlgorithm algorithm) {
+    if(typeid(T) == typeid(Image<Gray<unsigned char>>) && algorithm == Matrix2GrayImageAlgorithm::Normal) {
+        Image<Gray<unsigned char>> image(mat.width(), mat.height());
+        unsigned int max = mat.GetMaxValue();
+        for(unsigned int y = 0; y < image.height(); y++ ) {
+            for(unsigned int x = 0; x < image.width(); x++) {
+                unsigned int n = x + 1;
+                unsigned int m = y + 1;
+                Gray<unsigned char> color;
+                double value = (double)mat[m][n] / max * 255;
+                color.value = (int)value;
+                image.SetPixel(x, y, color);
+            }
+        }
+        return image;
     } else {
         throw;
     }
