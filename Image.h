@@ -7,32 +7,44 @@
 
 #define NAMESPACE_IMAGEPP_BEGIN namespace imagepp {
 #define NAMESPACE_IMAGEPP_END }
+#define NAMESPACE_CLUSTER_BEGIN namespace cluster {
+#define NAMESPACE_CLUSTER_END }
+#define NAMESPACE_FEATURE_EXTRACTION_BEGIN namespace feature_extraction {
+#define NAMESPACE_FEATURE_EXTRACTION_END }
 
 NAMESPACE_IMAGEPP_BEGIN
 
 template<typename T> struct RGB;
 
 struct BW {
-    BW() {
-    }
-    template<typename T>
-    BW(const RGB<T>& rgb) {
-        throw;
-    }
     enum Color : unsigned char {
         Black,
         White
     };
+    BW() {
+    }
+    BW(const BW::Color& c) {
+        this->color = c;
+    }
+    template<typename T> BW(const RGB<T>& rgb) {
+        throw;
+    }
     Color color;
     template<typename T>
     const BW& operator=(const RGB<T>& rhs) {
         throw;
         return *this;
     }
+    bool operator ==(const BW& rhs) const {
+        return this->color == rhs.color;
+    }
 };
 
-template<typename T>
-struct RGB {
+template<typename T> struct Gray {
+    T value;
+};
+
+template<typename T> struct RGB {
     T r, g, b;
     RGB() {
     }
@@ -57,13 +69,11 @@ struct RGB {
     }
 };
 
-template<typename T>
-struct Rect {
+template<typename T> struct Rect {
     T x, y, width, height;
 };
 
-template<typename T>
-class Image {
+template<typename T> class Image {
     unsigned int width_, height_;
     T* data_;
 public:
@@ -93,28 +103,6 @@ public:
         set_height(src.height());
         data_ = new T[width() * height()];
         memcpy(data_, src.data(), sizeof(T)*width()*height());
-    }
-    template<typename T1>
-    Image(const Image<T1>& src) {
-        if(typeid(T) == typeid(BW) && typeid(T1) == typeid(RGB<unsigned char>)) {
-            set_width(src.width());
-            set_height(src.height());
-            data_ = new T[width() * height()];
-            for(unsigned int y = 0; y < this->height(); y++) {
-                for(unsigned int x = 0; x < this->width(); x++) {
-                    RGB<unsigned char> srcColor = src.GetPixel(x, y);
-                    BW bwColor;
-                    if(srcColor.r + srcColor.g + srcColor.b <= 190 * 3) {
-                        bwColor.color = BW::Color::Black;
-                    } else {
-                        bwColor.color = BW::Color::White;
-                    }
-                    SetPixel(x, y, bwColor);
-                }
-            }
-        } else {
-            throw;
-        }
     }
     Image(unsigned int width, unsigned int height) {
         set_width(width);
@@ -220,6 +208,95 @@ public:
     }
 };
 
+template<typename T> class Matrix {
+    unsigned int width_, height_;
+    T* data_;
+public:
+    class Element {
+    public:
+        class ElementProxy {
+        public:
+            ElementProxy(Matrix<T>* src, unsigned int m, unsigned int n) {
+                src_ = src;
+                m_ = m;
+                n_ = n;
+            }
+            ElementProxy& operator=(ElementProxy& right) {
+                src_->data()[(m_ - 1)*src_->width() + x] = right.data()[(m_ - 1) * src_.width() + x];
+                return *this;
+            }
+            ElementProxy& operator=(T value) {
+                src_->data()[(m_ - 1)*src_->width() + n_ - 1] = value;
+                return *this;
+            }
+            T& operator++(int) {
+                src_->data()[(m_ - 1)*src_->width() + n_ - 1] ++;
+                return src_->data()[(m_ - 1) * src_->width() + n_ - 1];
+            }
+            T operator[](int y) {
+                throw;
+                std::cout << "y" << std::endl;
+                return T(0);
+            }
+            operator T() const {
+                return  src_->data()[(m_ - 1) * src_->width() + n_ - 1];
+            }
+        private:
+            Matrix<T>* src_;
+            unsigned int m_;
+            unsigned int n_;
+        };
+    public:
+        Element(Matrix<T>* src, int m) {
+            src_ = src;
+            m_ = m;
+        }
+        ElementProxy operator[](int n) {
+            assert(n >= 1);
+            return ElementProxy(src_, m_, n);
+        }
+    private:
+        Matrix<T>* src_;
+        int m_;
+    };
+    Element operator[](int m) {
+        assert(m >= 1);// matrix index start with 1
+        return Element(this, m);
+    }
+public:
+    unsigned int width() const {
+        return width_;
+    }
+    unsigned int height() const {
+        return height_;
+    }
+    T* data() const {
+        return data_;
+    }
+    void set_width(unsigned int width) {
+        width_ = width;
+    }
+    void set_height(unsigned int height) {
+        height_ = height;
+    }
+    Matrix(unsigned int width, unsigned int height) {
+        set_width(width);
+        set_height(height);
+        data_ = new T[width * height];
+    }
+    Matrix(unsigned int width, unsigned int height, T v) {
+        set_width(width);
+        set_height(height);
+        data_ = new T[width * height];
+        for(unsigned int i = 0; i < width * height; i++) {
+            data_[i] = v;
+        }
+    }
+};
+
+enum class ColorConvertAlgorithm {
+    RGB2BWCustomA
+};
 std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage) {
     std::vector<unsigned int> overlapped(bwImage.width(), 0);
     for(unsigned int x = 0; x < bwImage.width(); x++) {
@@ -240,8 +317,28 @@ std::vector<unsigned int> HorizontalOverlapping(Image<BW>& bwImage) {
     }
     return overlapped;
 }
+template<typename T> T GetConvertedImage(const Image<RGB<unsigned char>>& src, ColorConvertAlgorithm algorithem) {
+    if(typeid(T) == typeid(Image<BW>) && algorithem == ColorConvertAlgorithm::RGB2BWCustomA) {
+        Image<BW> ret(src.width(), src.height());
+        for(unsigned int y = 0; y < ret.height(); y++) {
+            for(unsigned int x = 0; x < ret.width(); x++) {
+                RGB<unsigned char> srcColor = src.GetPixel(x, y);
+                BW bwColor;
+                if(srcColor.r + srcColor.g + srcColor.b <= 190 * 3) {
+                    bwColor.color = BW::Color::Black;
+                } else {
+                    bwColor.color = BW::Color::White;
+                }
+                ret.SetPixel(x, y, bwColor);
+            }
+        }
+        return ret;
+    } else {
+        throw;
+    }
+}
 
-namespace cluster {
+NAMESPACE_CLUSTER_BEGIN
 
 unsigned int ClusterCount(std::vector<unsigned int> nums) {
     unsigned int count = 0;
@@ -292,11 +389,31 @@ std::vector<std::pair<unsigned int, unsigned int>> GetBorders(std::vector<unsign
     return borders;
 }
 
+NAMESPACE_CLUSTER_END
+
+NAMESPACE_FEATURE_EXTRACTION_BEGIN
+
+Matrix<unsigned int> Line(const Image<BW>& image) {
+    Matrix<unsigned int> mat(180, 50, 0);
+    for(unsigned int theta = 0; theta < mat.width(); theta++) {
+        for(unsigned int r = 0; r < mat.height(); r++) {
+            unsigned int m = r + 1;
+            unsigned int n = theta + 1;
+            double costheta = cos(theta * 3.1415926 / 180);
+            double sintheta = sin(theta * 3.1415926 / 180);
+            for(unsigned int y = 0; y < image.height(); y++) {
+                for(unsigned int x = 0; x < image.width(); x++) {
+                    if(image.GetPixel(x, y) == BW(BW::Color::Black)) {
+                        if(r == x * costheta + y * sintheta) {
+                            mat[m][n]++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return mat;
 }
 
-namespace feature_extraction {
-
-void Line() {}
-
-}
+NAMESPACE_FEATURE_EXTRACTION_END
 NAMESPACE_IMAGEPP_END
