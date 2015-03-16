@@ -14,9 +14,6 @@
 
 NAMESPACE_IMAGEPP_BEGIN
 
-//template<typename T> struct Gray;
-//template<typename T> struct RGB;
-
 struct BW {
     enum Color : unsigned char {
         Black,
@@ -40,6 +37,9 @@ template<typename T> struct Gray {
     Gray() {}
     Gray(const Gray& gray) {
         this->value = gray.value;
+    }
+    bool operator==(unsigned char rhs) {
+        return value == rhs;
     }
     T value;
 };
@@ -367,10 +367,8 @@ template<typename T> T GetConvertedImage(const Matrix<unsigned int>& mat, Matrix
     if(typeid(T) == typeid(Image<Gray<unsigned char>>) && algorithm == Matrix2GrayImageAlgorithm::Normal) {
         Image<Gray<unsigned char>> image(mat.width(), mat.height());
         unsigned int max = mat.GetMaxValue();
-        for(unsigned int y = 0; y < image.height(); y++ ) {
-            for(unsigned int x = 0; x < image.width(); x++) {
-                unsigned int n = x + 1;
-                unsigned int m = y + 1;
+        for(unsigned int y = 0, m = mat.height(); y < image.height() ; y++, m-- ) {
+            for(unsigned int x = 0 , n = 1; x < image.width(); x++, n++) {
                 Gray<unsigned char> color;
                 double value = (double)mat[m][n] / max * 255;
                 color.value = (int)value;
