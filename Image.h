@@ -14,7 +14,8 @@
 
 NAMESPACE_IMAGEPP_BEGIN
 
-template<typename T> struct RGB;
+//template<typename T> struct Gray;
+//template<typename T> struct RGB;
 
 struct BW {
     enum Color : unsigned char {
@@ -23,24 +24,23 @@ struct BW {
     };
     BW() {
     }
-    BW(const BW::Color& c) {
-        this->color = c;
+    BW(const BW& bw) {
+        this->color = bw.color;
     }
-    template<typename T> BW(const RGB<T>& rgb) {
-        throw;
+    BW(const Color color) {
+        this->color = color;
     }
     Color color;
-    template<typename T>
-    const BW& operator=(const RGB<T>& rhs) {
-        throw;
-        return *this;
-    }
     bool operator ==(const BW& rhs) const {
         return this->color == rhs.color;
     }
 };
 
 template<typename T> struct Gray {
+    Gray() {}
+    Gray(const Gray& gray) {
+        this->value = gray.value;
+    }
     T value;
 };
 
@@ -52,11 +52,6 @@ template<typename T> struct RGB {
         this->r = r;
         this->g = g;
         this->b = b;
-    }
-    RGB(const BW& bw) {
-        this->r = bw.color * 255;
-        this->g = bw.color * 255;
-        this->b = bw.color * 255;
     }
     bool operator==(const RGB<T>& rhs) const {
         return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
@@ -173,10 +168,10 @@ public:
             for(unsigned int y = 0; y < this->height(); y++) {
                 for(unsigned int x = 0; x < this->width(); x++) {
                     RGBQUAD color;
-                    RGB<unsigned char> colorXY = GetPixel(x, y);
-                    color.rgbRed = colorXY.r;
-                    color.rgbGreen = colorXY.g;
-                    color.rgbBlue = colorXY.b;
+                    RGB<unsigned char>* colorXY = (RGB<unsigned char>*)(data_ + y * width() + x);
+                    color.rgbRed = colorXY->r;
+                    color.rgbGreen = colorXY->g;
+                    color.rgbBlue = colorXY->b;
                     FreeImage_SetPixelColor(dib, x, y, &color);
                 }
             }
@@ -184,10 +179,21 @@ public:
             for(unsigned int y = 0; y < this->height(); y++) {
                 for(unsigned int x = 0; x < this->width(); x++) {
                     RGBQUAD color;
-                    BW colorXY = GetPixel(x, y);
-                    color.rgbRed = colorXY.color * 255;
-                    color.rgbGreen = colorXY.color * 255;
-                    color.rgbBlue = colorXY.color * 255;
+                    BW* colorXY = (BW*)(data_ + y * width() + x);
+                    color.rgbRed = colorXY->color * 255;
+                    color.rgbGreen = colorXY->color * 255;
+                    color.rgbBlue = colorXY->color * 255;
+                    FreeImage_SetPixelColor(dib, x, y, &color);
+                }
+            }
+        } else if(typeid(T) == typeid(Gray<unsigned char>)) {
+            for(unsigned int y = 0; y < this->height(); y++) {
+                for(unsigned int x = 0; x < this->width(); x++) {
+                    RGBQUAD color;
+                    Gray<unsigned int> *colorXY = (Gray<unsigned int>*)(data_ + y * width() + x);
+                    color.rgbRed = colorXY->value;
+                    color.rgbGreen = colorXY->value;
+                    color.rgbBlue = colorXY->value;
                     FreeImage_SetPixelColor(dib, x, y, &color);
                 }
             }
@@ -216,7 +222,7 @@ public:
     public:
         class ElementProxy {
         public:
-            ElementProxy(Matrix<T>* src, unsigned int m, unsigned int n) {
+            ElementProxy(const Matrix<T>* src, unsigned int m, unsigned int n) {
                 src_ = src;
                 m_ = m;
                 n_ = n;
@@ -233,21 +239,21 @@ public:
                 src_->data()[(m_ - 1)*src_->width() + n_ - 1] ++;
                 return src_->data()[(m_ - 1) * src_->width() + n_ - 1];
             }
-            T operator[](int y) {
-                throw;
-                std::cout << "y" << std::endl;
-                return T(0);
-            }
+            /* T operator[](int y)  {
+                 throw;
+                 std::cout << "y" << std::endl;
+                 return T(0);
+             }*/
             operator T() const {
                 return  src_->data()[(m_ - 1) * src_->width() + n_ - 1];
             }
         private:
-            Matrix<T>* src_;
+            const Matrix<T>* src_;
             unsigned int m_;
             unsigned int n_;
         };
     public:
-        Element(Matrix<T>* src, int m) {
+        Element(const Matrix<T>* src, int m) {
             src_ = src;
             m_ = m;
         }
@@ -255,11 +261,19 @@ public:
             assert(n >= 1);
             return ElementProxy(src_, m_, n);
         }
+        const ElementProxy operator[](int n) const {
+            assert(n >= 1);
+            return ElementProxy(src_, m_, n);
+        }
     private:
-        Matrix<T>* src_;
+        const Matrix<T>* src_;
         int m_;
     };
-    Element operator[](int m) {
+    Element operator[](int m)  {
+        assert(m >= 1);// matrix index start with 1
+        return Element(this, m);
+    }
+    const Element operator[](int m) const {
         assert(m >= 1);// matrix index start with 1
         return Element(this, m);
     }
@@ -294,7 +308,7 @@ public:
     }
     T GetMaxValue() const {
         T max = 0;
-        for(int i = 0; i < width()*height(); i++) {
+        for(unsigned int i = 0; i < width()*height(); i++) {
             if(data()[i] > max) {
                 max = data()[i];
             }
@@ -434,7 +448,7 @@ Matrix<unsigned int> Line(const Image<BW>& image) {
             double sintheta = sin(theta * 3.1415926 / 180);
             for(unsigned int y = 0; y < image.height(); y++) {
                 for(unsigned int x = 0; x < image.width(); x++) {
-                    if(image.GetPixel(x, y) == BW(BW::Color::Black)) {
+                    if(image.GetPixel(x, y) == BW::Color::Black) {
                         if(r == x * costheta + y * sintheta) {
                             mat[m][n]++;
                         }
