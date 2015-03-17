@@ -315,12 +315,89 @@ public:
         }
         return max;
     }
+    ~Matrix() {
+        if(data_ != nullptr) {
+            delete []data_;
+            data_ = nullptr;
+        }
+    }
+};
+
+template<typename T> class Histogram2D {
+    unsigned int width_, height_;
+    T* data_;
+public:
+    unsigned int width() const {
+        return width_;
+    }
+    unsigned int height() const {
+        return height_;
+    }
+    T* data() const {
+        return data_;
+    }
+    void set_width(unsigned int width) {
+        width_ = width;
+    }
+    void set_height(unsigned int height) {
+        height_ = height;
+    }
+public:
+    Histogram2D(const Histogram2D<T>& src) {
+        set_width(src.width());
+        set_height(src.height());
+        data_ = new T[width() * height()];
+        memcpy(data_, src.data(), sizeof(T)*width()*height());
+    }
+    Histogram2D(unsigned int width, unsigned int height) {
+        set_width(width);
+        set_height(height);
+        data_ = new T[width * height];
+    }
+    Histogram2D(unsigned int width, unsigned int height, T v) {
+        set_width(width);
+        set_height(height);
+        data_ = new T[width * height];
+        for(unsigned int i = 0; i < width * height; i++) {
+            data_[i] = v;
+        }
+    }
+    T GetMaxValue() const {
+        T max = 0;
+        for(unsigned int i = 0; i < width()*height(); i++) {
+            if(data()[i] > max) {
+                max = data()[i];
+            }
+        }
+        return max;
+    }
+    ~Histogram2D() {
+        if(data_ != nullptr) {
+            delete []data_;
+            data_ = nullptr;
+        }
+    }
+    void AddAt(unsigned int x, unsigned int y, T value) {
+        data_[y * width() + x] += value;
+    }
+    T GetValue(unsigned int x, unsigned int y) const {
+        return data_[y * width() + x];
+    }
+    friend std::ostream& operator<<(std::ostream& os, Histogram2D& histogram) {
+        for(unsigned int y = 0; y < histogram.height(); y++) {
+            for(unsigned int x = 0; x < histogram.width(); x++) {
+                os << histogram.GetValue(x, y) << " ";
+            }
+            os << std::endl;
+        }
+        return os;
+    }
 };
 
 enum class RGB2BWAlgorithm {
     CustomA
 };
-enum class Matrix2GrayImageAlgorithm {
+enum class Histogram2D2GrayImageAlgorithm {
     Normal
 };
 std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage) {
@@ -363,14 +440,14 @@ template<typename T> T GetConvertedImage(const Image<RGB<unsigned char>>& src, R
         throw;
     }
 }
-template<typename T> T GetConvertedImage(const Matrix<unsigned int>& mat, Matrix2GrayImageAlgorithm algorithm) {
-    if(typeid(T) == typeid(Image<Gray<unsigned char>>) && algorithm == Matrix2GrayImageAlgorithm::Normal) {
-        Image<Gray<unsigned char>> image(mat.width(), mat.height());
-        unsigned int max = mat.GetMaxValue();
-        for(unsigned int y = 0, m = mat.height(); y < image.height() ; y++, m-- ) {
-            for(unsigned int x = 0 , n = 1; x < image.width(); x++, n++) {
+template<typename T> T GetConvertedImage(const Histogram2D<unsigned int>& histogram, Histogram2D2GrayImageAlgorithm algorithm) {
+    if(typeid(T) == typeid(Image<Gray<unsigned char>>) && algorithm == Histogram2D2GrayImageAlgorithm::Normal) {
+        Image<Gray<unsigned char>> image(histogram.width(), histogram.height());
+        unsigned int max = histogram.GetMaxValue();
+        for(unsigned int y = 0; y < image.height() ; y++  ) {
+            for(unsigned int x = 0 ; x < image.width(); x++ ) {
                 Gray<unsigned char> color;
-                double value = (double)mat[m][n] / max * 255;
+                double value = (double)histogram.GetValue(x, y) / max * 255;
                 color.value = (int)value;
                 image.SetPixel(x, y, color);
             }
@@ -436,26 +513,26 @@ NAMESPACE_CLUSTER_END
 
 NAMESPACE_FEATURE_EXTRACTION_BEGIN
 
-Matrix<unsigned int> Line(const Image<BW>& image) {
-    Matrix<unsigned int> mat(180, 50, 0);
-    for(unsigned int theta = 0; theta < mat.width(); theta++) {
-        for(unsigned int r = 0; r < mat.height(); r++) {
-            unsigned int m = r + 1;
-            unsigned int n = theta + 1;
-            double costheta = cos(theta * 3.1415926 / 180);
-            double sintheta = sin(theta * 3.1415926 / 180);
-            for(unsigned int y = 0; y < image.height(); y++) {
-                for(unsigned int x = 0; x < image.width(); x++) {
-                    if(image.GetPixel(x, y) == BW::Color::Black) {
+Histogram2D<unsigned int> Line(const Image<BW>& image) {
+    Histogram2D<unsigned int> histogram(360 / 45, 9, 0);
+    for(unsigned int y = 0; y < image.height(); y++) {
+        for(unsigned int x = 0; x < image.width(); x++) {
+            if(image.GetPixel(x, y).color == BW::Color::Black) {
+                for(unsigned int theta = 0; theta < 360; theta += 45) {
+                    for(unsigned int r = 0; r < 9; r++) {
+                        double costheta = cos(theta * 3.1415926 / 180);
+                        double sintheta = sin(theta * 3.1415926 / 180);
                         if(r == x * costheta + y * sintheta) {
-                            mat[m][n]++;
+                            histogram.AddAt(theta, r, 1);
+                            std::cout << "(" << theta << "," << r << ")";
                         }
                     }
                 }
             }
         }
     }
-    return mat;
+    std::cout << std::endl << histogram;
+    return histogram;
 }
 
 NAMESPACE_FEATURE_EXTRACTION_END
