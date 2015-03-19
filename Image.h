@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #define NAMESPACE_IMAGEPP_BEGIN namespace imagepp {
 #define NAMESPACE_IMAGEPP_END }
@@ -62,6 +63,10 @@ template<typename T> struct RGB {
         this->b = bw.color * 255;
         return *this;
     }
+};
+
+template<typename T> struct ARGB {
+    T a, r, g, b;
 };
 
 template<typename T> struct Rect {
@@ -362,6 +367,12 @@ public:
             data_[i] = v;
         }
     }
+    ~Histogram2D() {
+        if(data_ != nullptr) {
+            delete []data_;
+            data_ = nullptr;
+        }
+    }
     T GetMaxValue() const {
         T max = 0;
         for(unsigned int i = 0; i < width()*height(); i++) {
@@ -370,12 +381,6 @@ public:
             }
         }
         return max;
-    }
-    ~Histogram2D() {
-        if(data_ != nullptr) {
-            delete []data_;
-            data_ = nullptr;
-        }
     }
     void AddAt(unsigned int x, unsigned int y, T value) {
         data_[y * width() + x] += value;
@@ -391,6 +396,14 @@ public:
             os << std::endl;
         }
         return os;
+    }
+};
+
+template<typename T> struct Point {
+    T x, y;
+    Point(T x, T y) {
+        this->x = x;
+        this->y = y;
     }
 };
 
@@ -514,24 +527,28 @@ NAMESPACE_CLUSTER_END
 NAMESPACE_FEATURE_EXTRACTION_BEGIN
 
 Histogram2D<unsigned int> Line(const Image<BW>& image) {
-    Histogram2D<unsigned int> histogram(360 / 45, 9, 0);
+    Histogram2D<unsigned int> histogram(360 / 15, 9 * 10, 0);
+    std::vector<Point<unsigned int>> blackPoints;
     for(unsigned int y = 0; y < image.height(); y++) {
         for(unsigned int x = 0; x < image.width(); x++) {
             if(image.GetPixel(x, y).color == BW::Color::Black) {
-                for(unsigned int theta = 0; theta < 360; theta += 45) {
-                    for(unsigned int r = 0; r < 9; r++) {
-                        double costheta = cos(theta * 3.1415926 / 180);
-                        double sintheta = sin(theta * 3.1415926 / 180);
-                        if(r == x * costheta + y * sintheta) {
-                            histogram.AddAt(theta, r, 1);
-                            std::cout << "(" << theta << "," << r << ")";
-                        }
-                    }
+                blackPoints.push_back(Point<unsigned int>(x, y));
+            }
+        }
+    }
+    for(Point<unsigned int>& p : blackPoints) {
+        for(unsigned int theta = 0; theta < 360; theta += 15) {
+            for(float r = 0.0f; r < 9; r += 0.1f) {
+                double costheta = cos(theta * 3.1415926 / 180);
+                double sintheta = sin(theta * 3.1415926 / 180);
+                if(abs(r - ( p.x * costheta + p.y * sintheta)) < 0.1f ) {
+                    histogram.AddAt(theta / 15, r * 10, 1);
+                    //if(theta == 225)
+                    //std::cout << "(" << theta << "," << r << ")";
                 }
             }
         }
     }
-    std::cout << std::endl << histogram;
     return histogram;
 }
 
