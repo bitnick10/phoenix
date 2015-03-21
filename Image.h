@@ -74,11 +74,22 @@ template<typename T> struct ARGB {
 
 template<typename T> struct Point {
     T x, y;
+    Point() {}
+    Point(const Point<T>& point) {
+        this->x = point.x;
+        this->y = point.y;
+    }
     Point(T x, T y) {
         this->x = x;
         this->y = y;
     }
+    bool operator==(const Point<T>& rhs) const {
+        return (this->x == rhs.x && this->y == rhs.y);
+    }
 };
+//bool operator==(const Point<unsigned int>& lhs, const Point<unsigned int>& rhs) {
+//    return true;
+//}
 
 template<typename T> struct Rect {
     T x, y, width, height;
@@ -544,16 +555,39 @@ struct Line {
         this->r = r;
         this->theta = theta;
     }
-    std::vector<Point<unsigned int>> PointOnTheLine(unsigned int xMax) {
+    template<typename T>
+    std::vector<Point<unsigned int>> PointOnTheLine(const Image<T>& image) {
+        if(theta == 0) {
+            return PointOnTheLineTheta0(image);
+        }
         std::vector<Point<unsigned int>> ret;
-        for(unsigned int x = 0; x < xMax; x++) {
-            double y = (r - x * cos(theta)) / sin(theta);
+        for(unsigned int x = 0; x < image.width(); x++) {
+            auto costheta = cos(theta);
+            auto sintheta = sin(theta);
+            double y = (r - x * costheta) / sintheta;
             if(y < 0)
                 continue;
             unsigned int uiy = (unsigned int)(y + 0.5);
-            if(std::find(ret.begin(), ret.end(), uiy) == std::end(ret))
-                ret.push_back(Point<unsigned int>(x, uiy));
+            Point<unsigned int> point(x, uiy);
+            ret.push_back(point);
+            //if(std::find(ret.begin(), ret.end(), point) == std::end(ret))
+            //ret.push_back(point);
         }
+        return ret;
+    }
+private:
+    template<typename T>
+    std::vector<Point<unsigned int>> PointOnTheLineTheta0(const Image<T>& image) {
+        std::vector<Point<unsigned int>> ret;
+        for(unsigned int y = 0; y < image.height(); y++) {
+            // costheta = 1;
+            // sintheta = 0;
+            double x = r;
+            unsigned int uix = (unsigned int)(x + 0.5);
+            Point<unsigned int> point(uix, y);
+            ret.push_back(point);
+        }
+        return ret;
     }
 };
 
@@ -569,7 +603,8 @@ Histogram2D<unsigned int> ExtractLine(const Image<BW>& image) {
     //theta [0,¦Ð)
     auto theta_step = 15;
     auto r_step = 0.1;
-    Histogram2D<unsigned int> histogram(180 / 15, 9 * 1 / r_step, 0);
+    unsigned int height = (unsigned int)(9 / r_step) * 2;
+    Histogram2D<unsigned int> histogram(180 / 15, height, 0);
     /*std::vector<Point<unsigned int>> blackPoints;
     for(unsigned int y = 0; y < image.height(); y++) {
         for(unsigned int x = 0; x < image.width(); x++) {
@@ -581,9 +616,11 @@ Histogram2D<unsigned int> ExtractLine(const Image<BW>& image) {
     Line<float, unsigned int> line;
     for(line.theta = 0; line.theta < 360; line.theta += 15) {
         for(line.r = -9.0f; line.r < 9; line.r += 0.1f) {
-            for(auto& p : line.PointOnTheLine()) {
+            auto linePoint = line.PointOnTheLine(image);
+            for(auto& p : linePoint) {
                 if(image.GetPixel(p).color == BW::Color::Black) {
-                    histogram.AddAt(line.theta / 15, (line.r - 9.0f) * 10, 1);
+                    unsigned int y = (unsigned int)(line.r + 9.0f) * 10;
+                    histogram.AddAt(line.theta / 15, y , 1);
                 }
             }
         }
