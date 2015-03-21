@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cmath>
 
 #define NAMESPACE_IMAGEPP_BEGIN namespace imagepp {
 #define NAMESPACE_IMAGEPP_END }
@@ -12,6 +13,8 @@
 #define NAMESPACE_CLUSTER_END }
 #define NAMESPACE_FEATURE_EXTRACTION_BEGIN namespace feature_extraction {
 #define NAMESPACE_FEATURE_EXTRACTION_END }
+#define NAMESPACE_FEATURE_DETECTION_BEGIN namespace feature_detection {
+#define NAMESPACE_FEATURE_DETECTION_END }
 
 NAMESPACE_IMAGEPP_BEGIN
 
@@ -69,6 +72,14 @@ template<typename T> struct ARGB {
     T a, r, g, b;
 };
 
+template<typename T> struct Point {
+    T x, y;
+    Point(T x, T y) {
+        this->x = x;
+        this->y = y;
+    }
+};
+
 template<typename T> struct Rect {
     T x, y, width, height;
 };
@@ -82,6 +93,9 @@ public:
     }
     unsigned int height() const {
         return height_;
+    }
+    double diagonal_length() {
+        return sqrt(width() * width() + height() * height());
     }
     T* data() const {
         return data_;
@@ -97,6 +111,9 @@ public:
     }
     T GetPixel(unsigned int x, unsigned int y) const {
         return data_[y * width() + x];
+    }
+    T GetPixel(const Point<unsigned int>& point) const {
+        return data_[point.y * width() + point.x];
     }
     Image(const Image<T>& src) {
         set_width(src.width());
@@ -399,14 +416,6 @@ public:
     }
 };
 
-template<typename T> struct Point {
-    T x, y;
-    Point(T x, T y) {
-        this->x = x;
-        this->y = y;
-    }
-};
-
 enum class RGB2BWAlgorithm {
     CustomA
 };
@@ -523,34 +532,91 @@ std::vector<std::pair<unsigned int, unsigned int>> GetBorders(std::vector<unsign
 }
 
 NAMESPACE_CLUSTER_END
-
 NAMESPACE_FEATURE_EXTRACTION_BEGIN
 
-Histogram2D<unsigned int> Line(const Image<BW>& image) {
-    Histogram2D<unsigned int> histogram(360 / 15, 9 * 10, 0);
-    std::vector<Point<unsigned int>> blackPoints;
+// if theta in [0,2¦Ð) r>=0 the TTheta should be something like unsingend float
+template<typename TR, typename TTheta>
+struct Line {
+    TR r;
+    TTheta theta;
+    Line() {}
+    Line(TR r, TTheta theta) {
+        this->r = r;
+        this->theta = theta;
+    }
+    std::vector<Point<unsigned int>> PointOnTheLine(unsigned int xMax) {
+        std::vector<Point<unsigned int>> ret;
+        for(unsigned int x = 0; x < xMax; x++) {
+            double y = (r - x * cos(theta)) / sin(theta);
+            if(y < 0)
+                continue;
+            unsigned int uiy = (unsigned int)(y + 0.5);
+            if(std::find(ret.begin(), ret.end(), uiy) == std::end(ret))
+                ret.push_back(Point<unsigned int>(x, uiy));
+        }
+    }
+};
+
+//unsigned int SameElementCount(std::vector<Point<unsigned int>> vec1, std::vector<Point<unsigned int>> vec2) {
+//    unsigned int count = 0;
+//    for(auto& v : vec1) {
+//        if(std::find(vec2.begin(), vec2.end(), v) != std::end(vec2)) {
+//            count++;
+//        }
+//    }
+//}
+Histogram2D<unsigned int> ExtractLine(const Image<BW>& image) {
+    //theta [0,¦Ð)
+    auto theta_step = 15;
+    auto r_step = 0.1;
+    Histogram2D<unsigned int> histogram(180 / 15, 9 * 1 / r_step, 0);
+    /*std::vector<Point<unsigned int>> blackPoints;
     for(unsigned int y = 0; y < image.height(); y++) {
         for(unsigned int x = 0; x < image.width(); x++) {
             if(image.GetPixel(x, y).color == BW::Color::Black) {
                 blackPoints.push_back(Point<unsigned int>(x, y));
             }
         }
-    }
-    for(Point<unsigned int>& p : blackPoints) {
-        for(unsigned int theta = 0; theta < 360; theta += 15) {
-            for(float r = 0.0f; r < 9; r += 0.1f) {
-                double costheta = cos(theta * 3.1415926 / 180);
-                double sintheta = sin(theta * 3.1415926 / 180);
-                if(abs(r - ( p.x * costheta + p.y * sintheta)) < 0.1f ) {
-                    histogram.AddAt(theta / 15, r * 10, 1);
-                    //if(theta == 225)
-                    //std::cout << "(" << theta << "," << r << ")";
+    }*/
+    Line<float, unsigned int> line;
+    for(line.theta = 0; line.theta < 360; line.theta += 15) {
+        for(line.r = -9.0f; line.r < 9; line.r += 0.1f) {
+            for(auto& p : line.PointOnTheLine()) {
+                if(image.GetPixel(p).color == BW::Color::Black) {
+                    histogram.AddAt(line.theta / 15, (line.r - 9.0f) * 10, 1);
                 }
             }
         }
     }
+
     return histogram;
 }
-
 NAMESPACE_FEATURE_EXTRACTION_END
+NAMESPACE_FEATURE_DETECTION_BEGIN
+enum class EdgeDetectionAlgorithm {
+    BottomMinusUpNoNegative
+};
+template<typename T> T GetEdge(const Image<BW>& image, EdgeDetectionAlgorithm algorithm) {
+    if(typeid(T) == typeid(Image<BW>) && algorithm == EdgeDetectionAlgorithm::BottomMinusUpNoNegative) {
+        Image<BW> ret(image.width(), image.height());
+        for(unsigned int x = 0 ; x < ret.width(); x++ ) {
+            unsigned int y = ret.height() - 1;
+            ret.SetPixel(x, y, image.GetPixel(x, y));
+        }
+        for(unsigned int y = 0; y < ret.height() - 1 ; y++  ) {
+            for(unsigned int x = 0 ; x < ret.width(); x++ ) {
+                int delta = image.GetPixel(x, y).color - image.GetPixel(x, y + 1).color;
+                if(delta == -1)
+                    ret.SetPixel(x, y, BW(BW::Color::Black));
+                else {
+                    ret.SetPixel(x, y,  BW(BW::Color::White));
+                }
+            }
+        }
+        return ret;
+    } else {
+        throw;
+    }
+}
+NAMESPACE_FEATURE_DETECTION_END
 NAMESPACE_IMAGEPP_END
