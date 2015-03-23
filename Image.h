@@ -5,6 +5,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <algorithm>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <cmath>
 
 #define NAMESPACE_IMAGEPP_BEGIN namespace imagepp {
@@ -17,6 +20,16 @@
 #define NAMESPACE_FEATURE_DETECTION_END }
 
 NAMESPACE_IMAGEPP_BEGIN
+
+template<typename T> bool IsEqual(const T& lhs, const T& rhs) {
+    if(typeid(T) == typeid(float)) {
+        return  std::fabs(float(lhs - rhs)) < std::numeric_limits<T>::epsilon();
+    } else if(typeid(T) == typeid(double)) {
+        return std::fabs(double(lhs - rhs)) < std::numeric_limits<T>::epsilon();
+    } else {
+        return lhs == rhs;
+    }
+}
 
 struct BW {
     enum Color : unsigned char {
@@ -90,6 +103,34 @@ template<typename T> struct Point {
 //bool operator==(const Point<unsigned int>& lhs, const Point<unsigned int>& rhs) {
 //    return true;
 //}
+template<typename T> class Counter {
+    template<typename T, typename TC> struct countpair {
+        countpair(T data, TC count) {
+            this->data = data;
+            this->count = count;
+        }
+        T data;
+        TC count;
+    };
+    std::vector<countpair<T, unsigned int>> pairs;
+public:
+    void Count(const T& t, int i) {
+        for(auto& p : pairs) {
+            if(t == p.data) {
+                p.count += i;
+                return ;
+            }
+        }
+        countpair<T, unsigned int> newPair(t, i);
+        pairs.push_back(newPair);
+    }
+    std::vector<countpair<T, unsigned int>> GetSortedData() {
+        std::sort(pairs.begin(), pairs.end(), [](const countpair<T, unsigned int>& lhs, const countpair<T, unsigned int>& rhs) -> bool {
+            return lhs.count > rhs.count;
+        });
+        return pairs;
+    }
+};
 
 template<typename T> struct Rect {
     T x, y, width, height;
@@ -121,10 +162,14 @@ public:
         data_[y * width() + x] = color;
     }
     T GetPixel(unsigned int x, unsigned int y) const {
+        assert(x < width());
+        assert(y < height());
         return data_[y * width() + x];
     }
     T GetPixel(const Point<unsigned int>& point) const {
-        return data_[point.y * width() + point.x];
+        assert(point.x < width());
+        assert(point.y < height());
+        return GetPixel(point.x, point.y);
     }
     Image(const Image<T>& src) {
         set_width(src.width());
@@ -410,6 +455,28 @@ public:
         }
         return max;
     }
+    Point<unsigned int> GetMaxValuePosition() {
+        T max = 0;
+        Point<unsigned int> pos;
+        for(unsigned int y = 0; y < height(); y++) {
+            for(unsigned int x = 0; x < width(); x++) {
+                if(GetValue(x, y) > max) {
+                    max = GetValue(x, y);
+                    pos.x = x;
+                    pos.y = y;
+                }
+            }
+        }
+        return pos;
+    }
+    std::vector<Point<unsigned int>> GetSortedPositions() {
+        for(unsigned int y = 0; y < height(); y++) {
+            for(unsigned int x = 0; x < width(); x++) {
+                Point<unsigned int> point(x, y);
+
+            }
+        }
+    }
     void AddAt(unsigned int x, unsigned int y, T value) {
         data_[y * width() + x] += value;
     }
@@ -556,18 +623,20 @@ struct Line {
         this->theta = theta;
     }
     template<typename T>
-    std::vector<Point<unsigned int>> PointOnTheLine(const Image<T>& image) {
+    std::vector<Point<unsigned int>> PointOnTheImage(const Image<T>& image) {
         if(theta == 0) {
-            return PointOnTheLineTheta0(image);
+            return PointOnTheImageTheta0(image);
         }
         std::vector<Point<unsigned int>> ret;
         for(unsigned int x = 0; x < image.width(); x++) {
-            auto costheta = cos(theta);
-            auto sintheta = sin(theta);
+            auto costheta = cos(theta * M_PI / 180);
+            auto sintheta = sin(theta * M_PI / 180);
             double y = (r - x * costheta) / sintheta;
-            if(y < 0)
+            if(y + 0.5 < 0)
                 continue;
             unsigned int uiy = (unsigned int)(y + 0.5);
+            if(uiy >= image.height())
+                continue;
             Point<unsigned int> point(x, uiy);
             ret.push_back(point);
             //if(std::find(ret.begin(), ret.end(), point) == std::end(ret))
@@ -575,10 +644,15 @@ struct Line {
         }
         return ret;
     }
+    bool operator==(const Line<TR, TTheta>& rhs) const {
+        return IsEqual(this->r, rhs.r) && IsEqual(this->theta, rhs.theta);
+    }
 private:
     template<typename T>
-    std::vector<Point<unsigned int>> PointOnTheLineTheta0(const Image<T>& image) {
+    std::vector<Point<unsigned int>> PointOnTheImageTheta0(const Image<T>& image) {
         std::vector<Point<unsigned int>> ret;
+        if(r < 0 || r + 0.5 >= image.width())
+            return ret;
         for(unsigned int y = 0; y < image.height(); y++) {
             // costheta = 1;
             // sintheta = 0;
@@ -599,12 +673,13 @@ private:
 //        }
 //    }
 //}
-Histogram2D<unsigned int> ExtractLine(const Image<BW>& image) {
+Counter<Line<float, unsigned int>> ExtractLine(const Image<BW>& image) {
     //theta [0,¦Ð)
     auto theta_step = 15;
     auto r_step = 0.1;
     unsigned int height = (unsigned int)(9 / r_step) * 2;
-    Histogram2D<unsigned int> histogram(180 / 15, height, 0);
+
+    //Histogram2D<unsigned int> histogram(180 / 15, height, 0);
     /*std::vector<Point<unsigned int>> blackPoints;
     for(unsigned int y = 0; y < image.height(); y++) {
         for(unsigned int x = 0; x < image.width(); x++) {
@@ -613,20 +688,19 @@ Histogram2D<unsigned int> ExtractLine(const Image<BW>& image) {
             }
         }
     }*/
+    Counter<Line<float, unsigned int>> counter;
     Line<float, unsigned int> line;
-    for(line.theta = 0; line.theta < 360; line.theta += 15) {
+    for(line.theta = 0; line.theta < 180; line.theta += 15) {
         for(line.r = -9.0f; line.r < 9; line.r += 0.1f) {
-            auto linePoint = line.PointOnTheLine(image);
+            auto linePoint = line.PointOnTheImage(image);
             for(auto& p : linePoint) {
                 if(image.GetPixel(p).color == BW::Color::Black) {
-                    unsigned int y = (unsigned int)(line.r + 9.0f) * 10;
-                    histogram.AddAt(line.theta / 15, y , 1);
+                    counter.Count(line, 1);
                 }
             }
         }
     }
-
-    return histogram;
+    return counter;
 }
 NAMESPACE_FEATURE_EXTRACTION_END
 NAMESPACE_FEATURE_DETECTION_BEGIN
