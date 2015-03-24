@@ -124,6 +124,12 @@ public:
         countpair<T, unsigned int> newPair(t, i);
         pairs.push_back(newPair);
     }
+    unsigned int GetMaxCount() {
+        auto max = std::max_element(pairs.begin(), pairs.end(), [](const countpair<T, unsigned int>& lhs, const countpair<T, unsigned int>& rhs) -> bool{
+            return lhs < rhs;
+        });
+        return max;
+    }
     std::vector<countpair<T, unsigned int>> GetSortedData() {
         std::sort(pairs.begin(), pairs.end(), [](const countpair<T, unsigned int>& lhs, const countpair<T, unsigned int>& rhs) -> bool {
             return lhs.count > rhs.count;
@@ -665,14 +671,27 @@ private:
     }
 };
 
-//unsigned int SameElementCount(std::vector<Point<unsigned int>> vec1, std::vector<Point<unsigned int>> vec2) {
-//    unsigned int count = 0;
-//    for(auto& v : vec1) {
-//        if(std::find(vec2.begin(), vec2.end(), v) != std::end(vec2)) {
-//            count++;
-//        }
-//    }
-//}
+bool IsImageHasLine(const Image<BW>& image,
+                    float min_r, float max_r, float r_step,
+                    unsigned int min_theta, unsigned int max_theta, unsigned int theta_step,
+                    unsigned int line_min_count) {
+    Counter<Line<float, unsigned int>> counter;
+    Line<float, unsigned int> line;
+    for(line.theta = min_theta; line.theta < max_theta; line.theta += theta_step) {
+        for(line.r = min_r; line.r < max_r; line.r += r_step) {
+            auto linePoint = line.PointOnTheImage(image);
+            for(auto& p : linePoint) {
+                if(image.GetPixel(p).color == BW::Color::Black) {
+                    counter.Count(line, 1);
+                }
+            }
+        }
+    }
+    if(counter.GetMaxCount() >= line_min_count)
+        return true;
+    else
+        return false;
+}
 Counter<Line<float, unsigned int>> ExtractLine(const Image<BW>& image) {
     //theta [0,¦Ð)
     auto theta_step = 15;
