@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <assert.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <cmath>
@@ -114,6 +115,9 @@ template<typename T> class Counter {
     };
     std::vector<countpair<T, unsigned int>> pairs;
 public:
+    bool is_empty() const {
+        return pairs.empty();
+    }
     void Count(const T& t, int i) {
         for(auto& p : pairs) {
             if(t == p.data) {
@@ -125,10 +129,11 @@ public:
         pairs.push_back(newPair);
     }
     unsigned int GetMaxCount() {
+        assert(pairs.size() > 0);
         auto max = std::max_element(pairs.begin(), pairs.end(), [](const countpair<T, unsigned int>& lhs, const countpair<T, unsigned int>& rhs) -> bool{
-            return lhs < rhs;
+            return lhs.count < rhs.count;
         });
-        return max;
+        return (*max).count;
     }
     std::vector<countpair<T, unsigned int>> GetSortedData() {
         std::sort(pairs.begin(), pairs.end(), [](const countpair<T, unsigned int>& lhs, const countpair<T, unsigned int>& rhs) -> bool {
@@ -140,6 +145,9 @@ public:
 
 template<typename T> struct Rect {
     T x, y, width, height;
+    Rect() {}
+    Rect(T x, T y, T width, T height): x(x), y(y), width(width), height(height) {
+    }
 };
 
 template<typename T> class Image {
@@ -506,26 +514,8 @@ enum class RGB2BWAlgorithm {
 enum class Histogram2D2GrayImageAlgorithm {
     Normal
 };
-std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage) {
-    std::vector<unsigned int> overlapped(bwImage.width(), 0);
-    for(unsigned int x = 0; x < bwImage.width(); x++) {
-        for(unsigned int y = 0; y < bwImage.height(); y++) {
-            if(bwImage.GetPixel(x, y).color == BW::Color::Black)
-                overlapped[x] += 1;
-        }
-    }
-    return overlapped;
-}
-std::vector<unsigned int> HorizontalOverlapping(Image<BW>& bwImage) {
-    std::vector<unsigned int> overlapped(bwImage.height(), 0);
-    for(unsigned int y = 0; y < bwImage.height(); y++) {
-        for(unsigned int x = 0; x < bwImage.width(); x++) {
-            if(bwImage.GetPixel(x, y).color == BW::Color::Black)
-                overlapped[y] += 1;
-        }
-    }
-    return overlapped;
-}
+std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage);
+std::vector<unsigned int> HorizontalOverlapping(Image<BW>& bwImage);
 template<typename T> T GetConvertedImage(const Image<RGB<unsigned char>>& src, RGB2BWAlgorithm algorithm) {
     if(typeid(T) == typeid(Image<BW>) && algorithm == RGB2BWAlgorithm::CustomA) {
         Image<BW> ret(src.width(), src.height());
@@ -566,54 +556,8 @@ template<typename T> T GetConvertedImage(const Histogram2D<unsigned int>& histog
 
 NAMESPACE_CLUSTER_BEGIN
 
-unsigned int ClusterCount(std::vector<unsigned int> nums) {
-    unsigned int count = 0;
-    bool in_cluster = true;
-    for(unsigned int& n : nums) {
-        if(in_cluster) {
-            if(n > 0) {
-                continue;
-            } else {
-                in_cluster = false;
-            }
-        }
-        if(!in_cluster) {
-            if(n > 0) {
-                in_cluster = true;
-                count++;
-            } else {
-                continue;
-            }
-        }
-    }
-    return count;
-}
-std::vector<std::pair<unsigned int, unsigned int>> GetBorders(std::vector<unsigned int> nums) {
-    std::vector<std::pair<unsigned int, unsigned int>> borders;
-    bool in_cluster = false;
-    for(unsigned int i = 0; i < nums.size(); i++) {
-        unsigned int n = nums[i];
-        if(in_cluster) {
-            if(n > 0) {
-                continue;
-            } else {
-                in_cluster = false;
-                borders[borders.size() - 1].second = i - 1;
-            }
-        }
-        if(!in_cluster) {
-            if(n > 0) {
-                std::pair<unsigned int, unsigned int> pair;
-                pair.first = i ;
-                in_cluster = true;
-                borders.push_back(pair);
-            } else {
-                continue;
-            }
-        }
-    }
-    return borders;
-}
+unsigned int ClusterCount(std::vector<unsigned int> nums);
+std::vector<std::pair<unsigned int, unsigned int>> GetBorders(std::vector<unsigned int> nums);
 
 NAMESPACE_CLUSTER_END
 NAMESPACE_FEATURE_EXTRACTION_BEGIN
@@ -674,53 +618,9 @@ private:
 bool IsImageHasLine(const Image<BW>& image,
                     float min_r, float max_r, float r_step,
                     unsigned int min_theta, unsigned int max_theta, unsigned int theta_step,
-                    unsigned int line_min_count) {
-    Counter<Line<float, unsigned int>> counter;
-    Line<float, unsigned int> line;
-    for(line.theta = min_theta; line.theta < max_theta; line.theta += theta_step) {
-        for(line.r = min_r; line.r < max_r; line.r += r_step) {
-            auto linePoint = line.PointOnTheImage(image);
-            for(auto& p : linePoint) {
-                if(image.GetPixel(p).color == BW::Color::Black) {
-                    counter.Count(line, 1);
-                }
-            }
-        }
-    }
-    if(counter.GetMaxCount() >= line_min_count)
-        return true;
-    else
-        return false;
-}
-Counter<Line<float, unsigned int>> ExtractLine(const Image<BW>& image) {
-    //theta [0,¦Ð)
-    auto theta_step = 15;
-    auto r_step = 0.1;
-    unsigned int height = (unsigned int)(9 / r_step) * 2;
+                    unsigned int line_min_count);
 
-    //Histogram2D<unsigned int> histogram(180 / 15, height, 0);
-    /*std::vector<Point<unsigned int>> blackPoints;
-    for(unsigned int y = 0; y < image.height(); y++) {
-        for(unsigned int x = 0; x < image.width(); x++) {
-            if(image.GetPixel(x, y).color == BW::Color::Black) {
-                blackPoints.push_back(Point<unsigned int>(x, y));
-            }
-        }
-    }*/
-    Counter<Line<float, unsigned int>> counter;
-    Line<float, unsigned int> line;
-    for(line.theta = 0; line.theta < 180; line.theta += 15) {
-        for(line.r = -9.0f; line.r < 9; line.r += 0.1f) {
-            auto linePoint = line.PointOnTheImage(image);
-            for(auto& p : linePoint) {
-                if(image.GetPixel(p).color == BW::Color::Black) {
-                    counter.Count(line, 1);
-                }
-            }
-        }
-    }
-    return counter;
-}
+Counter<Line<float, unsigned int>> ExtractLine(const Image<BW>& image);
 NAMESPACE_FEATURE_EXTRACTION_END
 NAMESPACE_FEATURE_DETECTION_BEGIN
 enum class EdgeDetectionAlgorithm {
