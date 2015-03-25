@@ -619,31 +619,58 @@ bool IsImageHasLine(const Image<BW>& image,
                     float min_r, float max_r, float r_step,
                     unsigned int min_theta, unsigned int max_theta, unsigned int theta_step,
                     unsigned int line_min_count);
-
+unsigned int NumberOfBodyIntersections(const Image<BW>& image, float r, unsigned int theta);
+unsigned int NumberOfEdgeIntersections(const Image<BW>& image, float r, unsigned int theta);
 Counter<Line<float, unsigned int>> ExtractLine(const Image<BW>& image);
 NAMESPACE_FEATURE_EXTRACTION_END
 NAMESPACE_FEATURE_DETECTION_BEGIN
 enum class EdgeDetectionAlgorithm {
-    BottomMinusUpNoNegative
+    BottomMinusUpNoNegative,
+    UpMinusBottomNoNegative
 };
 template<typename T> T GetEdge(const Image<BW>& image, EdgeDetectionAlgorithm algorithm) {
-    if(typeid(T) == typeid(Image<BW>) && algorithm == EdgeDetectionAlgorithm::BottomMinusUpNoNegative) {
-        Image<BW> ret(image.width(), image.height());
-        for(unsigned int x = 0 ; x < ret.width(); x++ ) {
-            unsigned int y = ret.height() - 1;
-            ret.SetPixel(x, y, image.GetPixel(x, y));
-        }
-        for(unsigned int y = 0; y < ret.height() - 1 ; y++  ) {
+    if(typeid(T) == typeid(Image<BW>)) {
+        switch (algorithm) {
+        case EdgeDetectionAlgorithm::BottomMinusUpNoNegative: {
+            Image<BW> ret(image.width(), image.height());
             for(unsigned int x = 0 ; x < ret.width(); x++ ) {
-                int delta = image.GetPixel(x, y).color - image.GetPixel(x, y + 1).color;
-                if(delta == -1)
-                    ret.SetPixel(x, y, BW(BW::Color::Black));
-                else {
-                    ret.SetPixel(x, y,  BW(BW::Color::White));
+                unsigned int y = ret.height() - 1;
+                ret.SetPixel(x, y, image.GetPixel(x, y));
+            }
+            for(unsigned int y = 0; y < ret.height() - 1 ; y++  ) {
+                for(unsigned int x = 0 ; x < ret.width(); x++ ) {
+                    int delta = image.GetPixel(x, y).color - image.GetPixel(x, y + 1).color;
+                    if(delta == -1)
+                        ret.SetPixel(x, y, BW(BW::Color::Black));
+                    else {
+                        ret.SetPixel(x, y,  BW(BW::Color::White));
+                    }
                 }
             }
+            return ret;
         }
-        return ret;
+        case EdgeDetectionAlgorithm::UpMinusBottomNoNegative: {
+            Image<BW> ret(image.width(), image.height());
+            for(unsigned int x = 0 ; x < ret.width(); x++ ) {
+                unsigned int y = 0;
+                ret.SetPixel(x, y, image.GetPixel(x, y));
+            }
+            for(unsigned int y = 1; y < ret.height()  ; y++  ) {
+                for(unsigned int x = 0 ; x < ret.width(); x++ ) {
+                    int delta = image.GetPixel(x, y).color - image.GetPixel(x, y - 1).color;
+                    if(delta == -1)
+                        ret.SetPixel(x, y, BW(BW::Color::Black));
+                    else {
+                        ret.SetPixel(x, y,  BW(BW::Color::White));
+                    }
+                }
+            }
+            return ret;
+        }
+        default:
+            throw;
+        }
+
     } else {
         throw;
     }

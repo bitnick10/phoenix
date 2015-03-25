@@ -46,6 +46,35 @@ bool IsImageHasLine(const Image<BW>& image,
     else
         return false;
 }
+unsigned int NumberOfBodyIntersections(const Image<BW>& image, float r, unsigned int theta) {
+    bool lastInBlack = false;
+    unsigned int number = 0;
+    Line<float, unsigned int> line(r, theta);
+    auto linePoint = line.PointOnTheImage(image);
+    for(auto& p : linePoint) {
+        if(image.GetPixel(p).color == BW::Color::Black) {
+            if(lastInBlack) {
+                continue;
+            }
+            number++;
+            lastInBlack = true;
+        } else {
+            lastInBlack = false;
+        }
+    }
+    return number;
+}
+unsigned int NumberOfEdgeIntersections(const Image<BW>& image, float r, unsigned int theta) {
+    unsigned int number = 0;
+    Line<float, unsigned int> line(r, theta);
+    auto linePoint = line.PointOnTheImage(image);
+    for(auto& p : linePoint) {
+        if(image.GetPixel(p).color == BW::Color::Black) {
+            number++;
+        }
+    }
+    return number;
+}
 Counter<Line<float, unsigned int>> ExtractLine(const Image<BW>& image) {
     //theta [0,¦Ð)
     auto theta_step = 15;
