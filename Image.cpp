@@ -46,6 +46,106 @@ bool IsImageHasLine(const Image<BW>& image,
     else
         return false;
 }
+std::vector<Point<unsigned int>> CheckPointAround(Image<BW>& image, std::vector<Point<unsigned int>> points) {
+    std::vector<Point<unsigned int>> newPoints;
+    for(Point<unsigned int>& p : points) {
+        auto leftPointer = image.GetLeftPixelPointer(p);
+        if(leftPointer != nullptr) {
+            if(leftPointer->color == BW::Color::White) {
+                leftPointer->color = BW::Color::Unknown3;
+                newPoints.push_back(Point<unsigned int>(p.x - 1, p.y));
+            }
+        }
+        auto rightPointer = image.GetRightPixelPointer(p);
+        if(rightPointer != nullptr) {
+            if(rightPointer->color == BW::Color::White) {
+                rightPointer->color = BW::Color::Unknown3;
+                newPoints.push_back(Point<unsigned int>(p.x + 1, p.y));
+            }
+        }
+        auto upPointer = image.GetUpPixelPointer(p);
+        if(upPointer != nullptr) {
+            if(upPointer->color == BW::Color::White) {
+                upPointer->color = BW::Color::Unknown3;
+                newPoints.push_back(Point<unsigned int>(p.x , p.y + 1));
+            }
+        }
+        auto bottomPointer = image.GetBottomPixelPointer(p);
+        if(bottomPointer != nullptr) {
+            if(bottomPointer->color == BW::Color::White) {
+                bottomPointer->color = BW::Color::Unknown3;
+                newPoints.push_back(Point<unsigned int>(p.x , p.y - 1));
+            }
+        }
+    }
+    return newPoints;
+}
+Image<BW> FillOutside(const Image<BW>& image) {
+    std::vector<Point<unsigned int>> points;
+    Image<BW> newImage(image);
+    for(unsigned int y = 0; y < image.height(); y++) {
+        Point<unsigned int> pt(0, y);
+        if(image.GetPixel(pt).color == BW::Color::White)
+            points.push_back(Point<unsigned int>(0, y));
+    }
+    for(unsigned int y = 0; y < image.height(); y++) {
+        Point<unsigned int> pt(image.width() - 1, y);
+        if(image.GetPixel(pt).color == BW::Color::White)
+            points.push_back(pt);
+    }
+    for(unsigned int x = 1; x < image.width() - 1; x++) {
+        Point<unsigned int> pt(x, 0);
+        if(image.GetPixel(pt).color == BW::Color::White)
+            points.push_back(pt);
+    }
+    for(unsigned int x = 1; x < image.width() - 1; x++) {
+        Point<unsigned int> pt(x, image.height() - 1);
+        if(image.GetPixel(pt).color == BW::Color::White)
+            points.push_back(pt);
+    }
+    for(Point<unsigned int>& p : points) {
+        unsigned char* pp = (unsigned char*)newImage.GetPixelPointer(p);
+        *pp = 3;
+    }
+    std::vector<Point<unsigned int>> nextPoints = CheckPointAround(newImage, points);
+    while(nextPoints.size() > 0) {
+        nextPoints = CheckPointAround(newImage, nextPoints);
+    }
+    return newImage;
+}
+bool IsImageHasClosedSharp(const Image<BW>& image) {
+    auto newImage = FillOutside(image);
+    return newImage.HasPixel(BW(BW::Color::White));
+}
+
+std::vector<Point<float>> ClosedSharpCenters(const Image<BW>& image) {
+    Image<BW> filledImage = FillOutside(image);
+    std::vector<Point<float>> ret;
+    for(auto index = filledImage.IndexOf(BW(BW::Color::White)); index.x != -1; index = filledImage.IndexOf(BW(BW::Color::White))) {
+        std::vector<Point<unsigned int>> points;
+        std::vector<Point<unsigned int>> nextPoints;
+        Point<unsigned int> pt;
+        pt.x = index.x;
+        pt.y = index.y;
+        nextPoints.push_back(pt);
+        filledImage.GetPixelPointer(pt)->color = BW::Color::Unknown3;
+        points.insert(points.end(), nextPoints.begin(), nextPoints.end());
+        while(nextPoints.size() > 0) {
+            nextPoints = CheckPointAround(filledImage, nextPoints);
+            points.insert(points.end(), nextPoints.begin(), nextPoints.end());
+        }
+        Point<unsigned int> acc(0, 0);
+        for(Point<unsigned int>& p : points) {
+            acc.x += p.x;
+            acc.y += p.y;
+        }
+        Point<float> av;
+        av.x = (float)acc.x / points.size();
+        av.y = (float)acc.y / points.size();
+        ret.push_back(av);
+    }
+    return ret;
+}
 unsigned int NumberOfBodyIntersections(const Image<BW>& image, float r, unsigned int theta) {
     bool lastInBlack = false;
     unsigned int number = 0;

@@ -7,6 +7,8 @@
 #include <vector>
 #include <algorithm>
 #include <assert.h>
+#include <numeric>
+#include <functional>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <cmath>
@@ -35,7 +37,11 @@ template<typename T> bool IsEqual(const T& lhs, const T& rhs) {
 struct BW {
     enum Color : unsigned char {
         Black,
-        White
+        White,
+        Unknown2,
+        Unknown3,
+        Unknown4,
+        Unknown5
     };
     BW() {
     }
@@ -175,6 +181,26 @@ public:
     void SetPixel(unsigned int x, unsigned int y, T& color) {
         data_[y * width() + x] = color;
     }
+    bool HasPixel(const T& color) {
+        for(T* p = data(); p < data() + width()*height(); p++) {
+            if (*p == color)
+                return true;
+        }
+        return false;
+    }
+    Point<int> IndexOf(const T& color) {
+        Point<int> ret(-1, -1);
+        for(unsigned int y = 0; y < this->height(); y++) {
+            for(unsigned int x = 0; x < this->width(); x++) {
+                if(GetPixel(x, y) == color) {
+                    ret.x = x;
+                    ret.y = y;
+                    return ret;
+                }
+            }
+        }
+        return ret;
+    }
     T GetPixel(unsigned int x, unsigned int y) const {
         assert(x < width());
         assert(y < height());
@@ -184,6 +210,48 @@ public:
         assert(point.x < width());
         assert(point.y < height());
         return GetPixel(point.x, point.y);
+    }
+    T* GetPixelPointer(const Point<unsigned int>& point) const {
+        assert(point.x < width());
+        assert(point.y < height());
+        return data() + point.y * width() + point.x;
+    }
+    T* GetLeftPixelPointer(const Point<unsigned int>& point) {
+        assert(point.x < width());
+        assert(point.y < height());
+        if(point.x == 0)
+            return nullptr;
+        return data() + point.y * width() + point.x - 1;
+    }
+    T* GetRightPixelPointer(const Point<unsigned int>& point) {
+        assert(point.x < width());
+        assert(point.y < height());
+        if(point.x == width() - 1)
+            return nullptr;
+        return data() + point.y * width() + point.x + 1;
+    }
+    T* GetUpPixelPointer(const Point<unsigned int>& point) {
+        assert(point.x < width());
+        assert(point.y < height());
+        if(point.y == height() - 1)
+            return nullptr;
+        return data() + point.y * width() + point.x + width();
+    }
+    T* GetBottomPixelPointer(const Point<unsigned int>& point) {
+        assert(point.x < width());
+        assert(point.y < height());
+        if(point.y == 0)
+            return nullptr;
+        return data() + point.y * width() + point.x - width();
+    }
+    unsigned int NumberOfColor(T& color) {
+        unsigned int count = 0;
+        for(T* p = data(); p < data() + width()*height(); p++) {
+            if(*p == color) {
+                count++;
+            }
+        }
+        return count;
     }
     Image(const Image<T>& src) {
         set_width(src.width());
@@ -619,6 +687,8 @@ bool IsImageHasLine(const Image<BW>& image,
                     float min_r, float max_r, float r_step,
                     unsigned int min_theta, unsigned int max_theta, unsigned int theta_step,
                     unsigned int line_min_count);
+bool IsImageHasClosedSharp(const Image<BW>& image);
+std::vector<Point<float>> ClosedSharpCenters(const Image<BW>& image) ;
 unsigned int NumberOfBodyIntersections(const Image<BW>& image, float r, unsigned int theta);
 unsigned int NumberOfEdgeIntersections(const Image<BW>& image, float r, unsigned int theta);
 Counter<Line<float, unsigned int>> ExtractLine(const Image<BW>& image);
@@ -626,7 +696,8 @@ NAMESPACE_FEATURE_EXTRACTION_END
 NAMESPACE_FEATURE_DETECTION_BEGIN
 enum class EdgeDetectionAlgorithm {
     BottomMinusUpNoNegative,
-    UpMinusBottomNoNegative
+    UpMinusBottomNoNegative,
+    RightMinusLeftNoNegative
 };
 template<typename T> T GetEdge(const Image<BW>& image, EdgeDetectionAlgorithm algorithm) {
     if(typeid(T) == typeid(Image<BW>)) {
@@ -658,6 +729,24 @@ template<typename T> T GetEdge(const Image<BW>& image, EdgeDetectionAlgorithm al
             for(unsigned int y = 1; y < ret.height()  ; y++  ) {
                 for(unsigned int x = 0 ; x < ret.width(); x++ ) {
                     int delta = image.GetPixel(x, y).color - image.GetPixel(x, y - 1).color;
+                    if(delta == -1)
+                        ret.SetPixel(x, y, BW(BW::Color::Black));
+                    else {
+                        ret.SetPixel(x, y,  BW(BW::Color::White));
+                    }
+                }
+            }
+            return ret;
+        }
+        case EdgeDetectionAlgorithm::RightMinusLeftNoNegative: {
+            Image<BW> ret(image.width(), image.height());
+            for(unsigned int y = 0 ; y < ret.height(); y++ ) {
+                unsigned int x = 0;
+                ret.SetPixel(x, y, image.GetPixel(x, y));
+            }
+            for(unsigned int x = 1; x < ret.width()  ; x++  ) {
+                for(unsigned int y = 0 ; y < ret.height(); y++ ) {
+                    int delta = image.GetPixel(x, y).color - image.GetPixel(x - 1, y ).color;
                     if(delta == -1)
                         ret.SetPixel(x, y, BW(BW::Color::Black));
                     else {
