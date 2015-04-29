@@ -91,22 +91,6 @@ template<typename T> struct RGB {
 template<typename T> struct ARGB {
     T a, r, g, b;
 };
-
-template<typename T> struct Point {
-    T x, y;
-    Point() {}
-    Point(const Point<T>& point) {
-        this->x = point.x;
-        this->y = point.y;
-    }
-    Point(T x, T y) {
-        this->x = x;
-        this->y = y;
-    }
-    bool operator==(const Point<T>& rhs) const {
-        return (this->x == rhs.x && this->y == rhs.y);
-    }
-};
 //bool operator==(const Point<unsigned int>& lhs, const Point<unsigned int>& rhs) {
 //    return true;
 //}
