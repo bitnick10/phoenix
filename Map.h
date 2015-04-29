@@ -24,14 +24,16 @@ public:
         height(0) {
     }
     Map(const Map<T>& map) {
-        printf("Map not implement")
-        throw;
+        __Width__(map.width);
+        __Height__(map.height);
+        data = new T[width * height];
+        memcpy(this->data, map.data, width * height * sizeof(T));
     }
     Map(const T* data, int width, int height) {
         __Width__(width);
         __Height__(height);
-        data = new T[width * height];
-        memcpy(this->data, data, width * height);
+        this->data = new T[width * height];
+        memcpy(this->data, data, width * height * sizeof(T));
     }
     Map(const T& initData, int width, int height) {
         __Width__(width);
@@ -57,11 +59,11 @@ public:
     void SetValueAt(unsigned int x, unsigned int y, const T& value) {
         data[y * __Width__() + x] = value;
     }
-    T GetValueAt(const Point<unsigned int>& point) {
-        return  GetValueAt(point.x, point.y);
+    T GetValueAt(const Point<unsigned int>& point) const {
+        return GetValueAt(point.x, point.y);
     }
-    T GetValueAt(unsigned int x, unsigned int y) {
-        return  data[y * __Width__() + x];
+    T GetValueAt(unsigned int x, unsigned int y) const {
+        return data[y * __Width__() + x];
     }
     T operator[](const Point<unsigned int>& point) {
         return data[point.y * __Width__() + point.x];
