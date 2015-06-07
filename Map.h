@@ -2,8 +2,8 @@
 template<typename T>
 class Map {
 private:
-    unsigned int width, height;
-    T* data;
+    unsigned int width = 0, height = 0;
+    T* data = nullptr;
 public:
     auto __Width__() const -> unsigned int {
         return width;
@@ -11,17 +11,14 @@ public:
     void __Width__(unsigned int value) {
         width = value;
     }
-    auto __Height__() const ->unsigned int {
+    auto __Height__() const -> unsigned int {
         return height;
     }
     void __Height__(unsigned int value) {
         height = value;
     }
 public:
-    Map():
-        data(nullptr),
-        width(0),
-        height(0) {
+    Map() {
     }
     Map(const Map<T>& map) {
         __Width__(map.width);

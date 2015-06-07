@@ -42,6 +42,10 @@ TEST(AStarTest, SimpleOne2) {
     EXPECT_EQ(7, path.size());
     EXPECT_EQ(Point<unsigned int>(2, 2), path[0]);
     EXPECT_EQ(Point<unsigned int>(2, 1), path[1]);
+    EXPECT_EQ(Point<unsigned int>(2, 0), path[2]);
+    EXPECT_EQ(Point<unsigned int>(3, 0), path[3]);
+    EXPECT_EQ(Point<unsigned int>(4, 0), path[4]);
+    EXPECT_EQ(Point<unsigned int>(5, 1), path[6]);
 }
 int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);

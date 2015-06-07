@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AStar", "AStar\AStar.vcxproj", "{5E2D0029-5615-4967-A9B4-25A19E2561C2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest", "F:\free\gtest-1.7.0\msvc\gtest.vcxproj", "{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ipp", "..\ipp.vcxproj", "{6C991808-D71D-4E06-8714-B61827B452FB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5E2D0029-5615-4967-A9B4-25A19E2561C2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5E2D0029-5615-4967-A9B4-25A19E2561C2}.Debug|Win32.Build.0 = Debug|Win32
+		{5E2D0029-5615-4967-A9B4-25A19E2561C2}.Release|Win32.ActiveCfg = Release|Win32
+		{5E2D0029-5615-4967-A9B4-25A19E2561C2}.Release|Win32.Build.0 = Release|Win32
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Debug|Win32.Build.0 = Debug|Win32
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|Win32.ActiveCfg = Release|Win32
+		{C8F6C172-56F2-4E76-B5FA-C3B423B31BE7}.Release|Win32.Build.0 = Release|Win32
+		{6C991808-D71D-4E06-8714-B61827B452FB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6C991808-D71D-4E06-8714-B61827B452FB}.Debug|Win32.Build.0 = Debug|Win32
+		{6C991808-D71D-4E06-8714-B61827B452FB}.Release|Win32.ActiveCfg = Release|Win32
+		{6C991808-D71D-4E06-8714-B61827B452FB}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
