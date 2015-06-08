@@ -11,8 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{6C991808-D71D-4E06-8714-B61827B452FB}</ProjectGuid>
-    <RootNamespace>ipp</RootNamespace>
+    <ProjectGuid>{FAB499B8-0EB7-41CB-8C81-4BAA81AC60C0}</ProjectGuid>
+    <RootNamespace>phoenix</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -64,14 +64,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AStar.cpp" />
-    <ClCompile Include="Image.cpp" />
+    <ClInclude Include="AStar.h" />
+    <ClInclude Include="Color.h" />
+    <ClInclude Include="Image.h" />
+    <ClInclude Include="phoenix.h" />
+    <ClInclude Include="Map.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AStar.h" />
-    <ClInclude Include="Image.h" />
-    <ClInclude Include="ipp.h" />
-    <ClInclude Include="Map.h" />
+    <ClCompile Include="AStar.cpp" />
+    <ClCompile Include="Image.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

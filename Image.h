@@ -13,8 +13,10 @@
 #include <math.h>
 #include <cmath>
 
-#define NAMESPACE_IMAGEPP_BEGIN namespace imagepp {
-#define NAMESPACE_IMAGEPP_END }
+#include "phoenix.h"
+
+#define NAMESPACE_PHOENIX_BEGIN namespace phoenix {
+#define NAMESPACE_PHOENIX_END }
 #define NAMESPACE_CLUSTER_BEGIN namespace cluster {
 #define NAMESPACE_CLUSTER_END }
 #define NAMESPACE_FEATURE_EXTRACTION_BEGIN namespace feature_extraction {
@@ -22,7 +24,7 @@
 #define NAMESPACE_FEATURE_DETECTION_BEGIN namespace feature_detection {
 #define NAMESPACE_FEATURE_DETECTION_END }
 
-NAMESPACE_IMAGEPP_BEGIN
+NAMESPACE_PHOENIX_BEGIN
 
 template<typename T> bool IsEqual(const T& lhs, const T& rhs) {
     if(typeid(T) == typeid(float)) {
@@ -34,63 +36,6 @@ template<typename T> bool IsEqual(const T& lhs, const T& rhs) {
     }
 }
 
-struct BW {
-    enum Color : unsigned char {
-        Black,
-        White,
-        Unknown2,
-        Unknown3,
-        Unknown4,
-        Unknown5
-    };
-    BW() {
-    }
-    BW(const BW& bw) {
-        this->color = bw.color;
-    }
-    BW(const Color color) {
-        this->color = color;
-    }
-    Color color;
-    bool operator ==(const BW& rhs) const {
-        return this->color == rhs.color;
-    }
-};
-
-template<typename T> struct Gray {
-    Gray() {}
-    Gray(const Gray& gray) {
-        this->value = gray.value;
-    }
-    bool operator==(unsigned char rhs) {
-        return value == rhs;
-    }
-    T value;
-};
-
-template<typename T> struct RGB {
-    T r, g, b;
-    RGB() {
-    }
-    RGB(int r, int g, int b) {
-        this->r = r;
-        this->g = g;
-        this->b = b;
-    }
-    bool operator==(const RGB<T>& rhs) const {
-        return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
-    }
-    const RGB<T>& operator=(const BW& bw) {
-        this->r = bw.color * 255;
-        this->g = bw.color * 255;
-        this->b = bw.color * 255;
-        return *this;
-    }
-};
-
-template<typename T> struct ARGB {
-    T a, r, g, b;
-};
 //bool operator==(const Point<unsigned int>& lhs, const Point<unsigned int>& rhs) {
 //    return true;
 //}
@@ -566,8 +511,10 @@ enum class RGB2BWAlgorithm {
 enum class Histogram2D2GrayImageAlgorithm {
     Normal
 };
+
 std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage);
 std::vector<unsigned int> HorizontalOverlapping(Image<BW>& bwImage);
+
 template<typename T> T GetConvertedImage(const Image<RGB<unsigned char>>& src, RGB2BWAlgorithm algorithm) {
     if(typeid(T) == typeid(Image<BW>) && algorithm == RGB2BWAlgorithm::CustomA) {
         Image<BW> ret(src.width(), src.height());
@@ -749,4 +696,4 @@ template<typename T> T GetEdge(const Image<BW>& image, EdgeDetectionAlgorithm al
     }
 }
 NAMESPACE_FEATURE_DETECTION_END
-NAMESPACE_IMAGEPP_END
+NAMESPACE_PHOENIX_END

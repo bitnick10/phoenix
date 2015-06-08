@@ -2,7 +2,7 @@
 #include <list>
 #include <algorithm>
 #include "Map.h"
-#include "ipp.h"
+#include "phoenix.h"
 
 class AStar {
 private:
