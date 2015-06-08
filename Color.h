@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cmath>
-
+namespace phoenix {
 struct BW {
     enum Color : unsigned char {
         Black,
@@ -84,7 +84,7 @@ RGB96 HSB96ToRGB96(const HSB96& hsb) {
     if (hi == 0) {
         RGB96 ret(hsb.b, t, p);
         return ret;
-    } else if(hi == 1) {
+    } else if (hi == 1) {
         RGB96 ret(q, hsb.b, p);
         return ret;
     } else if (hi == 2) {
@@ -105,4 +105,5 @@ RGB96 HSB96ToRGB96(const HSB96& hsb) {
 RGB24 RGB96ToRGB24(const RGB96& rgb) {
     RGB24 ret((unsigned char)(rgb.r * 255 + 0.5), (unsigned char)(rgb.g * 255 + 0.5), (unsigned char)(rgb.b * 255 + 0.5));
     return ret;
+}
 }
