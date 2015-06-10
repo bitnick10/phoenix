@@ -75,7 +75,7 @@ template<typename T> struct ARGB {
     T a, r, g, b;
 };
 
-RGB96 HSB96ToRGB96(const HSB96& hsb) {
+inline RGB96 HSB96ToRGB96(const HSB96& hsb) {
     int hi = (int)(hsb.h / 60) % 6;
     float f = hsb.h / 60 - hi;
     float p = hsb.b * (1 - hsb.s);
@@ -102,7 +102,7 @@ RGB96 HSB96ToRGB96(const HSB96& hsb) {
     }
 }
 
-RGB24 RGB96ToRGB24(const RGB96& rgb) {
+inline RGB24 RGB96ToRGB24(const RGB96& rgb) {
     RGB24 ret((unsigned char)(rgb.r * 255 + 0.5), (unsigned char)(rgb.g * 255 + 0.5), (unsigned char)(rgb.b * 255 + 0.5));
     return ret;
 }

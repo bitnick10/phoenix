@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "../../Color.h"
 TEST(HSB96ToRGB96, SimpleOne) {
+    using namespace phoenix;
     HSB96 hsb;
     hsb.h = 0;
     hsb.s = 1.0f;
