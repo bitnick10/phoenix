@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <cassert>
 namespace phoenix {
 struct BW {
     enum Color : unsigned char {
@@ -35,28 +36,47 @@ template<typename T> struct Gray {
     }
     T value;
 };
-
-template<typename T> struct RGB {
-    T r, g, b;
-    RGB() {
-    }
-    RGB(T r, T g, T b) {
+//template<typename T> struct RGB {
+//    T r, g, b;
+//    RGB() {
+//    }
+//    RGB(T r, T g, T b) {
+//        this->r = r;
+//        this->g = g;
+//        this->b = b;
+//    }
+//    bool operator==(const RGB<T>& rhs) const {
+//        return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
+//    }
+//    const RGB<T>& operator=(const BW& bw) {
+//        this->r = bw.color * 255;
+//        this->g = bw.color * 255;
+//        this->b = bw.color * 255;
+//        return *this;
+//    }
+//};
+struct RGB24 {
+    unsigned char r, g, b; // r（[0, 255] g（[0, 255] b（[0, 255]
+    RGB24(unsigned char r, unsigned char g, unsigned char b) {
         this->r = r;
         this->g = g;
         this->b = b;
     }
-    bool operator==(const RGB<T>& rhs) const {
-        return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
-    }
-    const RGB<T>& operator=(const BW& bw) {
-        this->r = bw.color * 255;
-        this->g = bw.color * 255;
-        this->b = bw.color * 255;
-        return *this;
+};
+struct RGB96 {
+    float r = 0.0f; // r（[0,1]
+    float g = 0.0f; // g（[0,1]
+    float b = 0.0f; // b（[0,1]
+    RGB96() {}
+    RGB96(float r, float g, float b) {
+        assert(0.0f <= r && r <= 1.0f);
+        assert(0.0f <= g && g <= 1.0f);
+        assert(0.0f <= b && b <= 1.0f);
+        this->r = r;
+        this->g = g;
+        this->b = b;
     }
 };
-typedef RGB<unsigned char> RGB24; // RGB<byte> r（[0,255] g（[0,255] b（[0,255]
-typedef RGB<float> RGB96;         // RGB<float> r（[0,1] g（[0,1] b（[0,1]
 
 template<typename H, typename SB> struct HSB {
     H h;
@@ -68,8 +88,21 @@ template<typename H, typename SB> struct HSB {
         this->b = rhs.b;
     }
 };
+struct HSB96 {
+    float h = 0.0; // h（[0, 360)
+    float s = 0.0; // s（[0, 1]
+    float b = 0.0; // b（[0, 1]
+    HSB96() {}
+    HSB96(float h, float s, float b) {
+        assert(0.0f <= h && h < 360.0f);
+        assert(0.0f <= s && s <= 1.0f);
+        assert(0.0f <= b && b <= 1.0f);
+        this->h = h;
+        this->s = s;
+        this->b = b;
+    }
+};
 typedef HSB<unsigned short, unsigned char> HSB32; // h（[0,359] g（[0,100] b（[0,100]
-typedef HSB<float, float> HSB96;// h（[0,360) s（[0,1] b（[0,1]
 
 template<typename T> struct ARGB {
     T a, r, g, b;
