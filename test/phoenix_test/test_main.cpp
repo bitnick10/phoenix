@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
-#include "../../Color.h"
+#include "phoenix/Color.h"
+#include "phoenix/SoundWave.h"
 TEST(HSB96ToRGB96, SimpleOne) {
     using namespace phoenix;
     HSB96 hsb;
@@ -25,6 +26,9 @@ TEST(HSB96ToRGB96, SimpleOne) {
     rgb96 = HSB96ToRGB96(hsb);
     rgb24 = RGB96ToRGB24(rgb96);
     EXPECT_EQ(RGB24(204, 198, 10), rgb24);
+}
+TEST(SoundWaveTest, SimpleOne) {
+
 }
 int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);
