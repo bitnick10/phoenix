@@ -3,29 +3,43 @@
 #include <cstdint>
 #include <stdio.h>
 #include <string>
+
+inline int GetStepFromC0(int frequency, int frequencyA4) {
+    double arg = pow(2, 1.0 / 12);
+    double frequencyC0 = (double)frequencyA4 / pow(arg, 9 + 48);
+    // C0 frequency should be 16.352
+    assert(16 == (int)frequencyC0);
+    auto a = (double)frequency / frequencyC0;
+    auto powValue = pow(a, 12);
+    auto log2Value = log2(powValue);
+    assert(log2Value >= 0);
+    int step = (int)(log2Value + 0.5);
+    return step;
+}
+
 // https://en.wikipedia.org/wiki/Scientific_pitch_notation
-std::string GetPianoNoteByFrequency(int frequency, int frequencyA4) {
+inline std::string GetPianoNoteByFrequency(int frequency, int frequencyA4) {
     //                 0    1     2    3     4    5    6     7    8     9    10   11
     char* notes[] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
-    double arg = pow(2, 1.0 / 12);
-    double frequencyC4 = (double)frequencyA4 / pow(arg, 9);
-    auto a = (double)frequency / frequencyC4;
-    int step = (int)(log2(pow(a, 12)) + 0.5);
+    int step = GetStepFromC0(frequency, frequencyA4);
     int index = (step + 12 * 100) % 12;
     return std::string(notes[index]);
 }
-int GetPianoOctaveByFrequcny(int frequency, int frequencyA4) {
-    double arg = pow(2, 1.0 / 12);
-    // C0 frequency should be 16.352
-    double frequencyC0 = (double)frequencyA4 / pow(arg, 9 + 48);
-    auto a = (double)frequency / frequencyC0;
-    auto powValue = pow(a, 12);
-    // log2Value must be bigger than 0
-    auto log2Value = log2(powValue);
-    int step = (int)(log2Value + 0.5);
+
+// https://en.wikipedia.org/wiki/Solf%C3%A8ge
+inline std::string GetPianoSolfaNumberByFrequency(int frequency, int frequencyA4) {
+    char* snnotes[] = { "1", "1#", "2", "2#", "3", "4", "4#", "5", "5#", "6", "6#", "7" };
+    int step = GetStepFromC0(frequency, frequencyA4);
+    int index = (step + 12 * 100) % 12;
+    return std::string(snnotes[index]);
+}
+
+inline int GetPianoOctaveByFrequcny(int frequency, int frequencyA4) {
+    int step = GetStepFromC0(frequency, frequencyA4);
     int octave = step / 12;
     return octave;
 }
+
 class SoundWave {
     typedef struct WaveHeader {
         uint8_t riff[4];             //资源交换文件标志
@@ -64,9 +78,9 @@ public:
             uint8_t second;
         } play_time;
 
-        if (NULL == (wave.fp = fopen_s(file, "rb"))) {                             /* open file */
-            printf("file %s open failure!\n", file);
-        }
+        //if (NULL == (wave.fp = fopen_s(file, "rb"))) {                             /* open file */
+        //    printf("file %s open failure!\n", file);
+        //}
 
         /* read heade information */
         if (4 != fread(wave.header.riff, sizeof(uint8_t), 4, wave.fp)) {         /* RIFF chunk */
