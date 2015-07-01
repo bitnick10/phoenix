@@ -28,3 +28,10 @@ public:
         return info == p;
     }
 };
+
+// https://en.wikipedia.org/wiki/Fraction_(mathematics)#Mixed_numbers
+struct MixedFraction {
+    unsigned int numerator;
+    unsigned int denominator;
+    int integer;
+};
