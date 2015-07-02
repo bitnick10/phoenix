@@ -62,6 +62,9 @@ struct RGB24 {
         this->g = g;
         this->b = b;
     }
+    bool operator==(const RGB24& rhs) const {
+        return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
+    }
 };
 struct RGB96 {
     float r = 0.0f; // r¡Ê[0,1]
@@ -75,6 +78,9 @@ struct RGB96 {
         this->r = r;
         this->g = g;
         this->b = b;
+    }
+    bool operator==(const RGB96& rhs) const {
+        return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
     }
 };
 
