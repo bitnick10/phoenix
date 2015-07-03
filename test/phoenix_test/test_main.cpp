@@ -28,7 +28,14 @@ TEST(HSB96ToRGB96, SimpleOne) {
     EXPECT_EQ(RGB24(204, 198, 10), rgb24);
 }
 TEST(SoundWaveTest, SimpleOne) {
-
+    SoundWave wave("Ã«Ã«Óê.wav");
+    // uint8_t r[4] = "RIFF";
+    EXPECT_EQ('R', wave.header.riff[0]);
+    EXPECT_EQ('I', wave.header.riff[1]);
+    EXPECT_EQ('F', wave.header.riff[2]);
+    EXPECT_EQ('F', wave.header.riff[3]);
+    EXPECT_EQ(44100, wave.header.samp_freq);
+    EXPECT_EQ(176400, wave.header.byte_rate);
 }
 int main(int argc, char* argv[]) {
     testing::InitGoogleTest(&argc, argv);
