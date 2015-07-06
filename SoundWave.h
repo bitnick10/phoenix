@@ -176,7 +176,7 @@ public:
             wave.header.data_length = this->header.data_length / n;
             wave.header.size = wave.header.data_length + 36;
             assert(wave.header.channels == 1 || wave.header.channels == 2);
-            uint32_t offset = i * wave.header.data_length & ~4;
+            uint32_t offset = i * wave.header.data_length & ~3;
             memcpy(wave.data, this->data + offset , wave.header.data_length);
             ret.push_back(wave);
         }
