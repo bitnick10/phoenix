@@ -49,6 +49,12 @@ struct Pitch {
         C0 = -57,
         C1 = -45,
         C2 = -33,
+        D2 = -31,
+        E2 = -29,
+        F2 = -28,
+        G2 = -26,
+        A2 = -24,
+        B2 = -22,
         C3 = -21,
         C4 = -9,
         A4 = 0
@@ -170,18 +176,37 @@ public:
 
     std::vector<SoundWave> SplitIntoEqualPieces(int n) {
         std::vector<SoundWave> ret;
+        double onePieceLen = (double)(this->header.data_length) / n;
+        uint32_t iOnePieceLen = (uint32_t)onePieceLen;
         for (int i = 0; i < n; i++) {
-            SoundWave wave(this->header.data_length / n);
+            SoundWave wave(iOnePieceLen & ~3);
             wave.header = this->header;
-            wave.header.data_length = this->header.data_length / n;
+            wave.header.data_length = iOnePieceLen & ~3;
             wave.header.size = wave.header.data_length + 36;
             assert(wave.header.channels == 1 || wave.header.channels == 2);
-            uint32_t offset = i * wave.header.data_length & ~3;
+            uint32_t offset = (uint32_t)(i * onePieceLen) & ~3;
             memcpy(wave.data, this->data + offset , wave.header.data_length);
             ret.push_back(wave);
         }
         return ret;
     }
+    std::vector<SoundWave> SplitIntoEqualPieces(double pieceTime, int numberOfPieces) {
+        std::vector<SoundWave> ret;
+        double onePieceLen = this->header.byte_rate * pieceTime;
+        uint32_t iOnePieceLen = (uint32_t)onePieceLen;
+        for (int i = 0; i < numberOfPieces; i++) {
+            SoundWave wave(iOnePieceLen & ~3);
+            wave.header = this->header;
+            wave.header.data_length = iOnePieceLen & ~3;
+            wave.header.size = wave.header.data_length + 36;
+            assert(wave.header.channels == 1 || wave.header.channels == 2);
+            uint32_t offset = (uint32_t)(i * onePieceLen) & ~3;
+            memcpy(wave.data, this->data + offset, wave.header.data_length);
+            ret.push_back(wave);
+        }
+        return ret;
+    }
+
     ~SoundWave() {
         delete data;
         data = nullptr;
