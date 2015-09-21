@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "ImageRGB24.h"
 
 template<typename T> struct Point {
     T x, y;

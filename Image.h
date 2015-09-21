@@ -241,60 +241,6 @@ public:
         }
         return subImage;
     }
-    void Save(const char* filename) const {
-        std::string fn = filename;
-        std::string ext = fn.substr(fn.find_last_of("."));
-        FIBITMAP *dib;
-        if(ext == ".png") {
-            dib = FreeImage_Allocate(width(), height(), 24);
-            if(!dib) {
-                throw;
-            }
-        } else {
-            throw;
-        }
-        if(typeid(T) == typeid(RGB<unsigned char>)) {
-            for(unsigned int y = 0; y < this->height(); y++) {
-                for(unsigned int x = 0; x < this->width(); x++) {
-                    RGBQUAD color;
-                    RGB<unsigned char>* colorXY = (RGB<unsigned char>*)(data_ + y * width() + x);
-                    color.rgbRed = colorXY->r;
-                    color.rgbGreen = colorXY->g;
-                    color.rgbBlue = colorXY->b;
-                    FreeImage_SetPixelColor(dib, x, y, &color);
-                }
-            }
-        } else if(typeid(T) == typeid(BW)) {
-            for(unsigned int y = 0; y < this->height(); y++) {
-                for(unsigned int x = 0; x < this->width(); x++) {
-                    RGBQUAD color;
-                    BW* colorXY = (BW*)(data_ + y * width() + x);
-                    color.rgbRed = colorXY->color * 255;
-                    color.rgbGreen = colorXY->color * 255;
-                    color.rgbBlue = colorXY->color * 255;
-                    FreeImage_SetPixelColor(dib, x, y, &color);
-                }
-            }
-        } else if(typeid(T) == typeid(Gray<unsigned char>)) {
-            for(unsigned int y = 0; y < this->height(); y++) {
-                for(unsigned int x = 0; x < this->width(); x++) {
-                    RGBQUAD color;
-                    Gray<unsigned int> *colorXY = (Gray<unsigned int>*)(data_ + y * width() + x);
-                    color.rgbRed = colorXY->value;
-                    color.rgbGreen = colorXY->value;
-                    color.rgbBlue = colorXY->value;
-                    FreeImage_SetPixelColor(dib, x, y, &color);
-                }
-            }
-        } else {
-            throw;
-        }
-        BOOL isSuccess = FreeImage_Save(FIF_PNG, dib, filename);
-        if(!isSuccess) {
-            throw;
-        }
-        FreeImage_Unload(dib);
-    }
     ~Image() {
         if(data_ != nullptr) {
             delete []data_;
@@ -512,46 +458,26 @@ enum class Histogram2D2GrayImageAlgorithm {
     Normal
 };
 
-std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage);
-std::vector<unsigned int> HorizontalOverlapping(Image<BW>& bwImage);
+//std::vector<unsigned int> VerticalOverlapping(Image<BW>& bwImage);
+//std::vector<unsigned int> HorizontalOverlapping(Image<BW>& bwImage);
 
-template<typename T> T GetConvertedImage(const Image<RGB<unsigned char>>& src, RGB2BWAlgorithm algorithm) {
-    if(typeid(T) == typeid(Image<BW>) && algorithm == RGB2BWAlgorithm::CustomA) {
-        Image<BW> ret(src.width(), src.height());
-        for(unsigned int y = 0; y < ret.height(); y++) {
-            for(unsigned int x = 0; x < ret.width(); x++) {
-                RGB<unsigned char> srcColor = src.GetPixel(x, y);
-                BW bwColor;
-                if(srcColor.r + srcColor.g + srcColor.b <= 190 * 3) {
-                    bwColor.color = BW::Color::Black;
-                } else {
-                    bwColor.color = BW::Color::White;
-                }
-                ret.SetPixel(x, y, bwColor);
-            }
-        }
-        return ret;
-    } else {
-        throw;
-    }
-}
-template<typename T> T GetConvertedImage(const Histogram2D<unsigned int>& histogram, Histogram2D2GrayImageAlgorithm algorithm) {
-    if(typeid(T) == typeid(Image<Gray<unsigned char>>) && algorithm == Histogram2D2GrayImageAlgorithm::Normal) {
-        Image<Gray<unsigned char>> image(histogram.width(), histogram.height());
-        unsigned int max = histogram.GetMaxValue();
-        for(unsigned int y = 0; y < image.height() ; y++  ) {
-            for(unsigned int x = 0 ; x < image.width(); x++ ) {
-                Gray<unsigned char> color;
-                double value = (double)histogram.GetValue(x, y) / max * 255;
-                color.value = (int)value;
-                image.SetPixel(x, y, color);
-            }
-        }
-        return image;
-    } else {
-        throw;
-    }
-}
+//template<typename T> T GetConvertedImage(const Histogram2D<unsigned int>& histogram, Histogram2D2GrayImageAlgorithm algorithm) {
+//    if(typeid(T) == typeid(Image<Gray<unsigned char>>) && algorithm == Histogram2D2GrayImageAlgorithm::Normal) {
+//        Image<Gray<unsigned char>> image(histogram.width(), histogram.height());
+//        unsigned int max = histogram.GetMaxValue();
+//        for(unsigned int y = 0; y < image.height() ; y++  ) {
+//            for(unsigned int x = 0 ; x < image.width(); x++ ) {
+//                Gray<unsigned char> color;
+//                double value = (double)histogram.GetValue(x, y) / max * 255;
+//                color.value = (int)value;
+//                image.SetPixel(x, y, color);
+//            }
+//        }
+//        return image;
+//    } else {
+//        throw;
+//    }
+//}
 
 NAMESPACE_CLUSTER_BEGIN
 
@@ -614,86 +540,86 @@ private:
     }
 };
 
-bool IsImageHasLine(const Image<BW>& image,
-                    float min_r, float max_r, float r_step,
-                    unsigned int min_theta, unsigned int max_theta, unsigned int theta_step,
-                    unsigned int line_min_count);
-bool IsImageHasClosedSharp(const Image<BW>& image);
-std::vector<Point<float>> ClosedSharpCenters(const Image<BW>& image) ;
-unsigned int NumberOfBodyIntersections(const Image<BW>& image, float r, unsigned int theta);
-unsigned int NumberOfEdgeIntersections(const Image<BW>& image, float r, unsigned int theta);
-Counter<Line<float, unsigned int>> ExtractLine(const Image<BW>& image);
+//bool IsImageHasLine(const Image<BW>& image,
+//                    float min_r, float max_r, float r_step,
+//                    unsigned int min_theta, unsigned int max_theta, unsigned int theta_step,
+//                    unsigned int line_min_count);
+//bool IsImageHasClosedSharp(const Image<BW>& image);
+//std::vector<Point<float>> ClosedSharpCenters(const Image<BW>& image) ;
+//unsigned int NumberOfBodyIntersections(const Image<BW>& image, float r, unsigned int theta);
+//unsigned int NumberOfEdgeIntersections(const Image<BW>& image, float r, unsigned int theta);
+//Counter<Line<float, unsigned int>> ExtractLine(const Image<BW>& image);
 NAMESPACE_FEATURE_EXTRACTION_END
 NAMESPACE_FEATURE_DETECTION_BEGIN
-enum class EdgeDetectionAlgorithm {
-    BottomMinusUpNoNegative,
-    UpMinusBottomNoNegative,
-    RightMinusLeftNoNegative
-};
-template<typename T> T GetEdge(const Image<BW>& image, EdgeDetectionAlgorithm algorithm) {
-    if(typeid(T) == typeid(Image<BW>)) {
-        switch (algorithm) {
-        case EdgeDetectionAlgorithm::BottomMinusUpNoNegative: {
-            Image<BW> ret(image.width(), image.height());
-            for(unsigned int x = 0 ; x < ret.width(); x++ ) {
-                unsigned int y = ret.height() - 1;
-                ret.SetPixel(x, y, image.GetPixel(x, y));
-            }
-            for(unsigned int y = 0; y < ret.height() - 1 ; y++  ) {
-                for(unsigned int x = 0 ; x < ret.width(); x++ ) {
-                    int delta = image.GetPixel(x, y).color - image.GetPixel(x, y + 1).color;
-                    if(delta == -1)
-                        ret.SetPixel(x, y, BW(BW::Color::Black));
-                    else {
-                        ret.SetPixel(x, y,  BW(BW::Color::White));
-                    }
-                }
-            }
-            return ret;
-        }
-        case EdgeDetectionAlgorithm::UpMinusBottomNoNegative: {
-            Image<BW> ret(image.width(), image.height());
-            for(unsigned int x = 0 ; x < ret.width(); x++ ) {
-                unsigned int y = 0;
-                ret.SetPixel(x, y, image.GetPixel(x, y));
-            }
-            for(unsigned int y = 1; y < ret.height()  ; y++  ) {
-                for(unsigned int x = 0 ; x < ret.width(); x++ ) {
-                    int delta = image.GetPixel(x, y).color - image.GetPixel(x, y - 1).color;
-                    if(delta == -1)
-                        ret.SetPixel(x, y, BW(BW::Color::Black));
-                    else {
-                        ret.SetPixel(x, y,  BW(BW::Color::White));
-                    }
-                }
-            }
-            return ret;
-        }
-        case EdgeDetectionAlgorithm::RightMinusLeftNoNegative: {
-            Image<BW> ret(image.width(), image.height());
-            for(unsigned int y = 0 ; y < ret.height(); y++ ) {
-                unsigned int x = 0;
-                ret.SetPixel(x, y, image.GetPixel(x, y));
-            }
-            for(unsigned int x = 1; x < ret.width()  ; x++  ) {
-                for(unsigned int y = 0 ; y < ret.height(); y++ ) {
-                    int delta = image.GetPixel(x, y).color - image.GetPixel(x - 1, y ).color;
-                    if(delta == -1)
-                        ret.SetPixel(x, y, BW(BW::Color::Black));
-                    else {
-                        ret.SetPixel(x, y,  BW(BW::Color::White));
-                    }
-                }
-            }
-            return ret;
-        }
-        default:
-            throw;
-        }
-
-    } else {
-        throw;
-    }
-}
+//enum class EdgeDetectionAlgorithm {
+//    BottomMinusUpNoNegative,
+//    UpMinusBottomNoNegative,
+//    RightMinusLeftNoNegative
+//};
+//template<typename T> T GetEdge(const Image<BW>& image, EdgeDetectionAlgorithm algorithm) {
+//    if(typeid(T) == typeid(Image<BW>)) {
+//        switch (algorithm) {
+//        case EdgeDetectionAlgorithm::BottomMinusUpNoNegative: {
+//            Image<BW> ret(image.width(), image.height());
+//            for(unsigned int x = 0 ; x < ret.width(); x++ ) {
+//                unsigned int y = ret.height() - 1;
+//                ret.SetPixel(x, y, image.GetPixel(x, y));
+//            }
+//            for(unsigned int y = 0; y < ret.height() - 1 ; y++  ) {
+//                for(unsigned int x = 0 ; x < ret.width(); x++ ) {
+//                    int delta = image.GetPixel(x, y).color - image.GetPixel(x, y + 1).color;
+//                    if(delta == -1)
+//                        ret.SetPixel(x, y, BW(BW::Color::Black));
+//                    else {
+//                        ret.SetPixel(x, y,  BW(BW::Color::White));
+//                    }
+//                }
+//            }
+//            return ret;
+//        }
+//        case EdgeDetectionAlgorithm::UpMinusBottomNoNegative: {
+//            Image<BW> ret(image.width(), image.height());
+//            for(unsigned int x = 0 ; x < ret.width(); x++ ) {
+//                unsigned int y = 0;
+//                ret.SetPixel(x, y, image.GetPixel(x, y));
+//            }
+//            for(unsigned int y = 1; y < ret.height()  ; y++  ) {
+//                for(unsigned int x = 0 ; x < ret.width(); x++ ) {
+//                    int delta = image.GetPixel(x, y).color - image.GetPixel(x, y - 1).color;
+//                    if(delta == -1)
+//                        ret.SetPixel(x, y, BW(BW::Color::Black));
+//                    else {
+//                        ret.SetPixel(x, y,  BW(BW::Color::White));
+//                    }
+//                }
+//            }
+//            return ret;
+//        }
+//        case EdgeDetectionAlgorithm::RightMinusLeftNoNegative: {
+//            Image<BW> ret(image.width(), image.height());
+//            for(unsigned int y = 0 ; y < ret.height(); y++ ) {
+//                unsigned int x = 0;
+//                ret.SetPixel(x, y, image.GetPixel(x, y));
+//            }
+//            for(unsigned int x = 1; x < ret.width()  ; x++  ) {
+//                for(unsigned int y = 0 ; y < ret.height(); y++ ) {
+//                    int delta = image.GetPixel(x, y).color - image.GetPixel(x - 1, y ).color;
+//                    if(delta == -1)
+//                        ret.SetPixel(x, y, BW(BW::Color::Black));
+//                    else {
+//                        ret.SetPixel(x, y,  BW(BW::Color::White));
+//                    }
+//                }
+//            }
+//            return ret;
+//        }
+//        default:
+//            throw;
+//        }
+//
+//    } else {
+//        throw;
+//    }
+//}
 NAMESPACE_FEATURE_DETECTION_END
 NAMESPACE_PHOENIX_END

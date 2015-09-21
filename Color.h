@@ -3,27 +3,9 @@
 #include <cmath>
 #include <cassert>
 namespace phoenix {
-struct BW {
-    enum Color : unsigned char {
-        Black,
-        White,
-        Unknown2,
-        Unknown3,
-        Unknown4,
-        Unknown5
-    };
-    BW() {
-    }
-    BW(const BW& bw) {
-        this->color = bw.color;
-    }
-    BW(const Color color) {
-        this->color = color;
-    }
-    Color color;
-    bool operator ==(const BW& rhs) const {
-        return this->color == rhs.color;
-    }
+enum BW : unsigned char {
+    Black,
+    White
 };
 
 template<typename T> struct Gray {
